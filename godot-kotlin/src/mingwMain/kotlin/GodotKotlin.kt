@@ -1,7 +1,7 @@
 import godotapi.*
 import kotlinx.cinterop.*
 
-class GodotAPI(val api: godot_gdnative_core_api_struct) {
+class GDNative(val api: godot_gdnative_core_api_struct) {
     fun print(value: String) {
         memScoped {
             val stringPointer = alloc<godot_string>().ptr
@@ -11,25 +11,47 @@ class GodotAPI(val api: godot_gdnative_core_api_struct) {
             api.godot_string_destroy!!(stringPointer)
         }
     }
+
+    fun printAPIVersion() {
+        print("GDNative API version: " + api.version.major + "." + api.version.minor)
+    }
 }
 
-var godot: GodotAPI? = null
+class NativeScript(val api: godot_gdnative_ext_nativescript_api_struct) {
+    fun printAPIVersion() {
+        gdNative?.print("NativeScript API version: " + api.version.major + "." + api.version.minor)
+    }
+}
 
-@ExperimentalUnsignedTypes
+var gdNative: GDNative? = null
+var nativeScript: NativeScript? = null
+
 @CName("godot_gdnative_init")
 fun godot_gdnative_init(options: godot_gdnative_init_options) {
-    godot = GodotAPI(options.api_struct!![0])
-    godot?.print("Initializing Kotlin library.")
+    gdNative = GDNative(options.api_struct!![0])
+    gdNative?.print("Initializing Kotlin library.")
 }
 
 @CName("godot_gdnative_terminate")
 fun godot_gdnative_terminate(options: godot_gdnative_terminate_options) {
-    godot?.print("De-initializing Kotlin library.")
-    godot = null
+    gdNative?.print("De-initializing Kotlin library.")
+    gdNative = null
+    nativeScript = null
 }
 
+@ExperimentalUnsignedTypes
 @CName("godot_nativescript_init")
 fun godot_nativescript_init(p_handle: COpaquePointer) {
-    godot?.print("Initializing Kotlin-Godot nativescript.")
-    godot?.print("Now what should we do?")
+    gdNative?.print("Initializing Kotlin-Godot nativescript.")
+
+    for (i in 0..gdNative!!.api.num_extensions.toInt()) {
+        val extension = gdNative!!.api.extensions!![i]!!
+        if(extension[0].type == GDNATIVE_API_TYPES.GDNATIVE_EXT_NATIVESCRIPT.value) {
+            nativeScript = NativeScript(extension.reinterpret<godot_gdnative_ext_nativescript_api_struct>()[0])
+            break
+        }
+    }
+
+    gdNative?.printAPIVersion()
+    nativeScript?.printAPIVersion()
 }
