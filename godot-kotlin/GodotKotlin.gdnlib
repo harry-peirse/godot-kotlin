@@ -1,0 +1,18 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+reloadable=true
+
+[entry]
+
+X11.64="res://godot-kotlin/build/bin/NONE_YET/main.so"
+Windows.64="res://godot-kotlin/build/bin/mingw/mainReleaseShared/main.dll"
+OSX.64="res://godot-kotlin/build/bin/NONE_YET/main.dylib"
+
+[dependencies]
+
+X11.64=[  ]
+Windows.64=[  ]
+OSX.64=[  ]
