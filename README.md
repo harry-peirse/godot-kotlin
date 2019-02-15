@@ -17,3 +17,16 @@ See the [Kotlin project readme](/godot-kotlin/README.md) for details on how to b
 Note that the godot-kotlin subdirectory contains a `.gdignore` file so that Godot will not try to import the project. 
 The `gdns` and `gdnlib` resource files (that are used to import the binary to godot) are therefore sitting in the root directory
 currently and should not be placed in the subdirectory or they will not be visible to godot.
+
+
+# Current Focus
+### 15-Feb-2019
+ - Get the Kotlin project to call back into the Godot API in some way
+ 
+
+# Status Report
+### 15-Feb-2019
+ - Godot project starts up!
+ - Kotlin project compiles!
+ - Godot project successfully imports binary from Kotlin project (on Windows)
+ - Kotlin project println() appears in the Godot console
