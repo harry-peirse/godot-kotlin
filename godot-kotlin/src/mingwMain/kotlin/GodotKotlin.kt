@@ -1,22 +1,35 @@
 import godotapi.*
 import kotlinx.cinterop.*
 
-private var api: CPointer<godot_gdnative_core_api_struct>? = null
+class GodotAPI(val api: godot_gdnative_core_api_struct) {
+    fun print(value: String) {
+        memScoped {
+            val stringPointer = alloc<godot_string>().ptr
+            api.godot_string_new!!(stringPointer)
+            api.godot_string_parse_utf8_with_len!!(stringPointer, value.cstr.ptr, value.length)
+            api.godot_print!!(stringPointer)
+            api.godot_string_destroy!!(stringPointer)
+        }
+    }
+}
+
+var godot: GodotAPI? = null
 
 @ExperimentalUnsignedTypes
 @CName("godot_gdnative_init")
 fun godot_gdnative_init(options: godot_gdnative_init_options) {
-    println("Initializing Kotlin library.")
-    api = options.api_struct
+    godot = GodotAPI(options.api_struct!![0])
+    godot?.print("Initializing Kotlin library.")
 }
 
 @CName("godot_gdnative_terminate")
 fun godot_gdnative_terminate(options: godot_gdnative_terminate_options) {
-    println("De-initializing Kotlin library.")
-    api = null
+    godot?.print("De-initializing Kotlin library.")
+    godot = null
 }
 
 @CName("godot_nativescript_init")
 fun godot_nativescript_init(p_handle: COpaquePointer) {
-    println("Initializing Kotlin-Godot nativescript.")
+    godot?.print("Initializing Kotlin-Godot nativescript.")
+    godot?.print("Now what should we do?")
 }
