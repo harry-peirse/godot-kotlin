@@ -20,11 +20,18 @@ currently and should not be placed in the subdirectory or they will not be visib
 
 
 # Current Focus
-### 15-Feb-2019
- - Get the Kotlin project to call back into the Godot API in some way
+### 17-Feb-2019
+ - Having encountered the restriction of not being able to pass structs by value in callbacks when attempting to use the Nativescript API, I am going to check if the same problem might be encountered using the GDNative API anywhere.
+ - Start considering the design of a v0.1 Kotlin API to wrap the native calls, to make it easier to use. 
  
 
 # Status Report
+
+### 17-Feb-2019
+ - I have successfully called the GDNative API from Kotlin
+ - I have attempted and failed to register Nativescript callbacks
+ - Nativescript callbacks can't be supported as the API requires callbacks which pass structs as values, which Kotlin Native does not currently support. The Kotlin documentation implies this is may be temporary (I think the words were 'currently unavailable' but I don't see anything further on it from Googling.
+ 
 ### 15-Feb-2019
  - Godot project starts up!
  - Kotlin project compiles!
