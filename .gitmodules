@@ -1,3 +1,3 @@
-[submodule "godot-kotlin/godot_headers"]
-	path = godot-kotlin/godot_headers
+[submodule "godot-kotlin/lib/godot_headers"]
+	path = godot-kotlin/lib/godot_headers
 	url = https://github.com/GodotNativeTools/godot_headers.git

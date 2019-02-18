@@ -1,4 +1,4 @@
-/godot-kotlin/build
-/godot-kotlin/.idea
-/godot-kotlin/*.iml
-/godot-kotlin/.gradle
+/godot-kotlin/**/build
+/godot-kotlin/**/.idea
+/godot-kotlin/**/*.iml
+/godot-kotlin/**/.gradle
