@@ -8,7 +8,7 @@ reloadable=true
 [entry]
 
 X11.64="res://godot-kotlin/build/bin/NONE_YET/main.so"
-Windows.64="res://godot-kotlin/build/bin/mingw/mainReleaseShared/main.dll"
+Windows.64="res://godot-kotlin/test-project/build/bin/mingw/mainReleaseShared/main.dll"
 OSX.64="res://godot-kotlin/build/bin/NONE_YET/main.dylib"
 
 [dependencies]

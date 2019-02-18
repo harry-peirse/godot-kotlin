@@ -7,5 +7,6 @@ pluginManagement {
         }
     }
 }
-rootProject.name = 'godot-kotlin'
+rootProject.name = "godot-kotlin"
 
+include("lib", "test-project")

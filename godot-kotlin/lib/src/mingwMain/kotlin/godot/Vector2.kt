@@ -17,12 +17,12 @@ typealias Size2 = Vector2
 
 class Vector2(x: Float = 0f, y: Float = 0f) : Comparable<Vector2> {
     var x: Float
-        get() = gdNative?.api?.godot_vector2_get_x!!(native)
-        set(value) = gdNative?.api?.godot_vector2_set_x!!(native, value)
+        get() = api.c.godot_vector2_get_x!!(native)
+        set(value) = api.c.godot_vector2_set_x!!(native, value)
 
     var y: Float
-        get() = gdNative?.api?.godot_vector2_get_y!!(native)
-        set(value) = gdNative?.api?.godot_vector2_set_y!!(native, value)
+        get() = api.c.godot_vector2_get_y!!(native)
+        set(value) = api.c.godot_vector2_set_y!!(native, value)
 
     var width
         get() = x
@@ -37,12 +37,12 @@ class Vector2(x: Float = 0f, y: Float = 0f) : Comparable<Vector2> {
         }
 
     private val native: CPointer<godot_vector2> =
-        gdNative?.api?.godot_alloc!!(godot_vector2.size.toInt())!!.reinterpret()
+        api.c.godot_alloc!!(godot_vector2.size.toInt())!!.reinterpret()
 
     init {
         val nativeVariant: CPointer<godot_variant> =
-            gdNative?.api?.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
-        gdNative?.api?.godot_variant_new_vector2!!(nativeVariant, native)
+            api.c.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+        api.c.godot_variant_new_vector2!!(nativeVariant, native)
 
         this.x = x
         this.y = y

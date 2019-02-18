@@ -1,15 +1,14 @@
 package godot
 
-import godotapi.*
-import kotlinx.cinterop.*
-import platform.posix.strcpy
-
 /**
 NATIVESCRIPT attempt 1
 
 XXX: This doesn't work yet, cannot pass struct by value in callbacks, therefore registering types with godot.NativeScript won't work
 */
 fun test() {
+
+
+
 //    memScoped {
 //        val nativeScript = nativeScript ?: throw IllegalStateException("Attempted to access the Godot NativeScript API but it was not initialized")
 //
