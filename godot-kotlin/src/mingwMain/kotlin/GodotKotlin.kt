@@ -2,12 +2,115 @@ import godotapi.*
 import kotlinx.cinterop.*
 //import platform.posix.strcpy
 
-class GDNative(val api: godot_gdnative_core_api_struct) {
-    fun print(value: String) {
+typealias p<T> = CPointer<T>
+typealias v<T> = CValue<T>
+typealias GDNativeAPI = godot_gdnative_core_api_struct
+
+ class Vector2() {
+     private val native: p<godot_vector2> = gdNative?.api?.godot_alloc!!(godot_vector2.size.toInt())!!.reinterpret()
+
+     init {
+         val nativeVariant: CPointer<godot_variant> = gdNative?.api?.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+         gdNative?.api?.godot_variant_new_vector2!!(nativeVariant, native)
+     }
+
+    var x: Float
+        get() = gdNative?.api?.godot_vector2_get_x!!(native)
+        set(value) = gdNative?.api?.godot_vector2_set_x!!(native, value)
+
+    var y: Float
+        get() = gdNative?.api?.godot_vector2_get_y!!(native)
+        set(value) = gdNative?.api?.godot_vector2_set_y!!(native, value)
+
+    constructor(x: Float = 0f, y: Float = 0f) : this() {
+        this.x = x
+        this.y = y
+    }
+
+    constructor(nativeVector2: v<godot_vector2>) : this() {
+        nativeVector2.useContents {
+            this@Vector2.x = x
+            this@Vector2.y = y
+        }
+    }
+
+
+    fun abs(): Vector2 = Vector2(kotlin.math.abs(x), kotlin.math.abs(y))
+
+    fun angle(): Float = gdNative?.api?.godot_vector2_angle!!(native)
+
+    fun angleTo(vector: Vector2): Float = gdNative?.api?.godot_vector2_angle_to!!(native, vector.native)
+
+    fun angleToPoint(vector: Vector2): Float = gdNative?.api?.godot_vector2_angle_to_point!!(native, vector.native)
+
+    override fun toString() = "[$x, $y]"
+
+    fun aspect(): Float = gdNative?.api?.godot_vector2_aspect!!(native)
+
+     // XXX: Turns out you can't return structs by value from native methods yet.
+
+//    fun bounce(vector: Vector2): Vector2 = Vector2(gdNative?.api?.godot_vector2_bounce!!(native, vector.native))
+
+//    fun clamped(value: Float): Vector2 = Vector2(gdNative?.api?.godot_vector2_clamped!!(native, value))
+
+//    fun cubicInterpolate(vector1: Vector2, vector2: Vector2, vector3: Vector2, value: Float): Vector2 =
+//        Vector2(gdNative?.api?.godot_vector2_cubic_interpolate!!(native, vector1.native, vector2.native, vector3.native, value))
+
+    fun distanceSquaredTo(vector: Vector2): Float = gdNative?.api?.godot_vector2_distance_squared_to!!(native, vector.native)
+
+    fun distanceTo(vector: Vector2): Float = gdNative?.api?.godot_vector2_distance_to!!(native, vector.native)
+
+    fun dot(vector: Vector2): Float = gdNative?.api?.godot_vector2_dot!!(native, vector.native)
+
+//    fun floor(): Vector2 = Vector2(gdNative?.api?.godot_vector2_floor!!(native))
+
+    fun isNormalized(): Boolean = gdNative?.api?.godot_vector2_is_normalized!!(native)
+
+    fun length(): Float = gdNative?.api?.godot_vector2_length!!(native)
+
+    fun lengthSquared(): Float = gdNative?.api?.godot_vector2_length_squared!!(native)
+
+//    fun linearInterpolate(vector: Vector2, value: Float): Vector2 = Vector2(gdNative?.api?.godot_vector2_linear_interpolate!!(native, vector.native, value))
+
+//    fun normalized(): Vector2 = Vector2(gdNative?.api?.godot_vector2_normalized!!(native))
+
+    operator fun plus(vector: Vector2) {}
+
+    operator fun div(scalar: Float) {}
+
+    operator fun div(vector: Vector2) {}
+
+    override fun equals(other: Any?) = false
+
+    operator fun compareTo(other: Vector2) = 0
+
+    operator fun times(scalar: Float) {}
+
+    operator fun times(vector: Vector2) {}
+
+    operator fun unaryMinus() {}
+
+    operator fun minus(vector: Vector2) {}
+
+    fun reflect() {}
+
+    fun rotated() {}
+
+    fun slide() {}
+
+    fun snapped() {}
+
+    fun tangent() {}
+
+}
+
+class GDNative(val api: GDNativeAPI) {
+    fun print(value: Any?) {
         memScoped {
+            val string = (value?.toString() ?: "null")
             val stringPointer = alloc<godot_string>().ptr
             api.godot_string_new!!(stringPointer)
-            api.godot_string_parse_utf8_with_len!!(stringPointer, value.cstr.ptr, value.length)
+            api.godot_string_parse_utf8_with_len!!(stringPointer, string.cstr.ptr, string.length)
             api.godot_print!!(stringPointer)
             api.godot_string_destroy!!(stringPointer)
         }
@@ -56,6 +159,27 @@ fun godot_nativescript_init(p_handle: COpaquePointer) {
     gdNative?.printAPIVersion()
     nativeScript?.printAPIVersion()
 
+
+    val v1 = Vector2()
+
+    gdNative?.print("v1 = " + v1)
+
+    v1.x = 9f
+    v1.y = -3f
+
+    gdNative?.print("v1.x = 9f, v1.y = -3f")
+    gdNative?.print("v1 = " + v1)
+
+    val v2 = v1.abs()
+    gdNative?.print("v2 = v1.abs()")
+    gdNative?.print("v1 = " + v1)
+    gdNative?.print("v2 = " + v2)
+
+    v2.x = 1f
+
+    gdNative?.print("v2.x = 1f")
+    gdNative?.print("v1.length() = " + v1.length())
+    gdNative?.print("v2.length() = " + v2.length())
 
     /*
     NATIVESCRIPT attempt 1
