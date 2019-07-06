@@ -3,13 +3,15 @@ Very experimental Godot bindings in Kotlin
 
 This repository contains:
  - A godot project in the root
- - A gradle/kotlin project (I used IntelliJ IDEA) under `/godot-kotlin`
+ - A gradle/kotlin multimodule project (I used IntelliJ IDEA) under `/godot-kotlin`
+   - `/godot-kotlin/lib` is ultimately what the goal is to publish. A generic set of bindings for Godot.
+   - `/godot-kotlin/test-project` is the test bed and where examples can be found of usage. 
  - A git submodule to the GDNative headers repository under `/godot-kotlin/godot_headers`
 
 It uses (at the time of writing):
- - Godot 3.1
- - Kotlin 1.3
- - Gradle 5.2.1
+ - Godot 3.2.master.stern-flowers.6e032365.730-2019-06-28T13:48:13+00:00
+ - Kotlin 1.3.21
+ - Gradle 5.4.1
 
 The godot project is setup to import the binaries built by gradle.
 See the [Kotlin project readme](/godot-kotlin/README.md) for details on how to build the binaries.
@@ -21,11 +23,15 @@ currently and should not be placed in the subdirectory or they will not be visib
 
 # Current Focus
 ### 17-Feb-2019
- - Having encountered the restriction of not being able to pass structs by value in callbacks when attempting to use the Nativescript API, I am going to check if the same problem might be encountered using the GDNative API anywhere.
- - Start considering the design of a v0.1 Kotlin API to wrap the native calls, to make it easier to use. 
+ - I want to flesh out some more use cases of NativeScript in the test project, to get a picture of how I might make it easier for others to write.
+ - Look into creating a Variant object properly in Kotlin and how that would interop with c and other Kotlin based classes.
  
 
 # Status Report
+
+### 06-Jul-2019
+ - After a long absence and an update to Kotlin Native I now have overcome the earlier problems with NativeScript and have a working call!
+ - A somewhat tested Vector2 class has been created in Kotlin as a start on some Kotlin-coder friendly bindings.
 
 ### 17-Feb-2019
  - I have successfully called the GDNative API from Kotlin

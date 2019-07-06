@@ -2,3 +2,5 @@
 /godot-kotlin/**/.idea
 /godot-kotlin/**/*.iml
 /godot-kotlin/**/.gradle
+/.idea
+/.gradle

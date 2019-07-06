@@ -1,7 +1,6 @@
 package game
 
-import godot.Vector2
-import godot.api
+import godot.test
 import godotapi.godot_gdnative_init_options
 import godotapi.godot_gdnative_terminate_options
 import kotlinx.cinterop.COpaquePointer
@@ -21,6 +20,5 @@ fun gdNativeTerminate(options: godot_gdnative_terminate_options) {
 fun nativeScriptInit(handle: COpaquePointer) {
     godot.nativeScriptInit(handle)
 
-    val v = Vector2(3f,1f)
-    api.print(v)
+    test()
 }

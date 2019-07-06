@@ -25,7 +25,7 @@ class GDNative(
 
 class NativeScript(
     val c: godot_gdnative_ext_nativescript_api_struct,
-    private val handle: COpaquePointer
+    val handle: COpaquePointer
 ) {
     fun printAPIVersion() {
         api.print("NativeScript API version: " + c.version.major + "." + c.version.minor)
@@ -35,7 +35,7 @@ class NativeScript(
 val api: GDNative
     get() = gdNative ?: throw IllegalStateException("Attempted to access GDNative but it was not initialized")
 
-private var nativeScript: NativeScript? = null
+var nativeScript: NativeScript? = null
 private var gdNative: GDNative? = null
 
 fun gdNativeInit(options: godot_gdnative_init_options) {
