@@ -6,7 +6,9 @@ kotlin {
     mingwX64("mingw") {
         compilations {
             val main by getting {
-                outputKinds("dynamic")
+                binaries {
+                    sharedLib()
+                }
                 dependencies {
                     implementation(project(":lib"))
                 }
