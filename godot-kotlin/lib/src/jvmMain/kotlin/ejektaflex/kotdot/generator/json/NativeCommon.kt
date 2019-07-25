@@ -1,6 +1,8 @@
 package ejektaflex.kotdot.generator.json
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+
 import ejektaflex.kotdot.generator.json.structure.GodotClass
 import ejektaflex.kotdot.generator.json.structure.GodotMethod
 import ejektaflex.kotdot.generator.json.structure.GodotProperty
@@ -30,14 +32,14 @@ object NativeCommon {
                 "class_${clazz.name.toLowerCase()}.html#class-$clazzName-method-$methodName"
     }
 
-    private val godot = "structure"
+    private val godot = "godot"
     private val cinterop = "kotlinx.cinterop"
 
     val variant = ClassName(godot, "Variant")
     val copaque = ClassName(cinterop, "COpaquePointer")
     val cpointer = ClassName(cinterop, "CPointer")
     val copaquevar = ClassName(cinterop, "COpaquePointerVar")
-    val godotBind = ClassName(godot, "CPointer<godot_method_bind>")
+    val godotBind = cpointer.parameterizedBy(ClassName("godotapi", "godot_method_bind"))
     val memscope = ClassName(cinterop, "MemScope")
 
     fun cPointerArray(contentClass: String): ClassName {

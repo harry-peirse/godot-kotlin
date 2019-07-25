@@ -51,10 +51,11 @@ data class GodotClass(
     fun generate(document: Boolean = true): String {
 
 
-        val file = FileSpec.builder("structure", name).apply {
+        val file = FileSpec.builder("godot", name).apply {
             val newClazz = TypeSpec.classBuilder(name).apply {
 
-                addImport("kotlin", "Double", "Boolean")
+                addImport("kotlinx.cinterop", "BooleanVar", "ByteVar", "COpaquePointerVar", "memScoped", "allocArray")
+                addImport("godotapi", "godot_method_bind_ptrcall")
 
                 // KDoc
 
@@ -67,7 +68,7 @@ data class GodotClass(
                 addModifiers(KModifier.OPEN)
 
                 baseClassGodot?.let {
-                    superclass(ClassName("structure", it.name))
+                    superclass(ClassName("godot", it.name))
                 }
 
                 /*

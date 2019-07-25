@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClassName = "ejektaflex.kotdot.generator.MainKt"
+    mainClassName = "godot.generator.MainKt"
 }
 
 val generatedSrcDir = file("$projectDir/src/generated/kotlin")

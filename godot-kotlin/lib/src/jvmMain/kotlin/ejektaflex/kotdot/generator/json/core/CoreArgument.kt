@@ -26,7 +26,7 @@ data class CoreArgument(val rawType: String, val name: String) {
         return ClassName("", if (realType in CTypeRegistry.keys) {
             CTypeRegistry[realType].toString()
         } else {
-            CoreClassRegistry[realType]!!.ktName
+            CoreClassRegistry[realType]?.ktName ?: throw NullPointerException("Can't find ClassName for $realType")
         })
     }
 

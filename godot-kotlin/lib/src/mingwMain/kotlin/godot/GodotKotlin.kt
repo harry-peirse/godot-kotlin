@@ -3,9 +3,15 @@ package godot
 import godotapi.*
 import kotlinx.cinterop.*
 
-class GDNative(
-    val c: godot_gdnative_core_api_struct,
-    private val options: godot_gdnative_init_options
+typealias String = godot_string
+typealias Variant = godot_variant
+typealias Array = godot_array
+typealias NodePath = godot_node_path
+typealias PoolStringArray = godot_pool_string_array
+
+class KGDNative(
+        val c: godot_gdnative_core_api_struct,
+        private val options: godot_gdnative_init_options
 ) {
     fun print(value: Any?) {
         memScoped {
@@ -23,23 +29,23 @@ class GDNative(
     }
 }
 
-class NativeScript(
-    val c: godot_gdnative_ext_nativescript_api_struct,
-    val handle: COpaquePointer
+class KNativeScript(
+        val c: godot_gdnative_ext_nativescript_api_struct,
+        val handle: COpaquePointer
 ) {
     fun printAPIVersion() {
         api.print("NativeScript API version: " + c.version.major + "." + c.version.minor)
     }
 }
 
-val api: GDNative
+val api: KGDNative
     get() = gdNative ?: throw IllegalStateException("Attempted to access GDNative but it was not initialized")
 
-var nativeScript: NativeScript? = null
-private var gdNative: GDNative? = null
+var nativeScript: KNativeScript? = null
+private var gdNative: KGDNative? = null
 
 fun gdNativeInit(options: godot_gdnative_init_options) {
-    gdNative = GDNative(options.api_struct!![0], options)
+    gdNative = KGDNative(options.api_struct!![0], options)
     api.print("Initializing Kotlin library. In editor: ${options.in_editor}")
 }
 
@@ -57,7 +63,7 @@ fun nativeScriptInit(handle: COpaquePointer) {
         val extension = api.c.extensions!![i]!!
         if (extension[0].type == GDNATIVE_API_TYPES.GDNATIVE_EXT_NATIVESCRIPT.value) {
             nativeScript =
-                NativeScript(extension.reinterpret<godot_gdnative_ext_nativescript_api_struct>()[0], handle)
+                    KNativeScript(extension.reinterpret<godot_gdnative_ext_nativescript_api_struct>()[0], handle)
             break
         }
     }

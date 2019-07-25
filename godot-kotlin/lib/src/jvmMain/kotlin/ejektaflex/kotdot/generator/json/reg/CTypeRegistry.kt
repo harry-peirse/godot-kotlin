@@ -8,14 +8,11 @@ import com.squareup.kotlinpoet.jvm.jvmWildcard
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 
-object CTypeRegistry : SimpleRegistry<String, KType>() {
+object CTypeRegistry : SimpleRegistry<String, TypeName>() {
 
     init {
         mapOf(
-                "godot_int" to Int::class.createType(),
-                "godot_real" to Float::class.createType(),
-                "void" to Unit::class.createType(),
-                "godot_bool" to Boolean::class.createType()
+                "void"          to Unit::class.asTypeName()
         ).forEach { t, u ->
             delegate[t] = u
         }
@@ -23,11 +20,9 @@ object CTypeRegistry : SimpleRegistry<String, KType>() {
 
     fun lookup(name: String): TypeName {
         return if (name in delegate) {
-            delegate[name]!!.asTypeName()
+            delegate[name]!!
         } else {
-            ClassName("", CoreClassRegistry[name]!!.ktName)
+            ClassName("godotapi", name)
         }
     }
-
-
 }

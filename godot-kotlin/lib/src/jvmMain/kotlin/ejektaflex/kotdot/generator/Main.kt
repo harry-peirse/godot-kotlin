@@ -9,8 +9,7 @@ import java.io.File
 val genSrcDir = System.getenv("GEN_SRC_DIR") + "/"
 
 fun main() {
-    createDir("structure")
-//    createDir("godot")
+    createDir("godot")
 
     GodotClassRegistry
             .forEach(::writeGodotClass)
@@ -27,7 +26,7 @@ fun createDir(fileName: String) {
 }
 
 fun writeGodotClass(entry: Map.Entry<String, GodotClass>) {
-    val file = File(genSrcDir + "structure/" + entry.key + ".kt")
+    val file = File(genSrcDir + "godot/" + entry.key + ".kt")
     if (file.exists()) {
         file.delete()
     }
@@ -36,7 +35,7 @@ fun writeGodotClass(entry: Map.Entry<String, GodotClass>) {
 }
 
 fun writeCoreClass(entry: Map.Entry<String, CoreClass>) {
-    val file = File(genSrcDir + "structure/" + entry.key + ".kt")
+    val file = File(genSrcDir + "godot/" + entry.key + ".kt")
     if (file.exists()) {
         file.delete()
     }
