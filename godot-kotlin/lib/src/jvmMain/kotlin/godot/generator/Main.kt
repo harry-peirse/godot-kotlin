@@ -25,8 +25,10 @@ fun main() {
             .create()
             .fromJson(File("godot_headers/api.json").readText(), (object : TypeToken<List<GClass>>() {}).type)
 
-    content.forEach {
-        File(genSrcDir, "${it.name}.kt").writeText(it.parse().toString())
+    val built = content.map{ it.parse(content) }
+
+    built.forEach {
+        File(genSrcDir, "${it.name}.kt").writeText(it.toString())
     }
 
     println("Complete.")

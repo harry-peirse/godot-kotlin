@@ -1,8 +1,13 @@
 package godot
 
 import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.free
+import kotlinx.cinterop.nativeHeap
 
-open class _Wrapped {
-    var _type_tag: Int? = null
-    var _owner: COpaquePointer? = null
+abstract class _Wrapped {
+    val _owner: COpaquePointer = nativeHeap.alloc()
+    fun destory() {
+        nativeHeap.free(_owner)
+    }
 }
