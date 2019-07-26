@@ -1,13 +1,10 @@
 package godot
 
-import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.free
-import kotlinx.cinterop.nativeHeap
+import kotlinx.cinterop.*
 
 abstract class _Wrapped {
-    val _owner: COpaquePointer = nativeHeap.alloc()
+    val mbOwner: COpaquePointer = nativeHeap.alloc<COpaquePointerVar>().ptr.reinterpret()
     fun destory() {
-        nativeHeap.free(_owner)
+        nativeHeap.free(mbOwner)
     }
 }

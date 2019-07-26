@@ -16,8 +16,7 @@ data class GClass(
         val instanciable: Boolean,
         val isReference: Boolean,
         val constants: Map<String, Int>,
-        val properties: List<GProperty>,
-        val signals: List<GSignal>,
+//        val signals: List<GSignal>,
         val methods: MutableList<GMethod>,
         val enums: List<GEnum>
 ) {
@@ -27,7 +26,6 @@ data class GClass(
         return FileSpec.builder(PACKAGE, name)
                 .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr")
                 .addType((if (isObject) buildCore(TypeSpec.objectBuilder(ClassName(PACKAGE, name))) else TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
-                        .addProperties(properties.filter { !it.name.contains("/") }.mapNotNull { property -> property.parse(this) })
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addFunctions(methods.map { method -> method.parse(this, content) })
                         .apply {
@@ -70,33 +68,7 @@ data class GClass(
                     .build())
 }
 
-data class GProperty(
-        val name: String,
-        val type: String,
-        val getter: String,
-        val setter: String
-) {
-    fun parse(clazz: GClass): PropertySpec? {
-        val getter = clazz.methods.find { it.name == getter }
-        return if (getter?.arguments.isNullOrEmpty()) {
-            val spec = PropertySpec.builder(underscoreToCamelCase(name), typeOf(getter?.returnType?.substringAfter("enum.")
-                    ?: type)).apply {
-                if (getter != null) {
-                    getter(getter.also { clazz.methods.remove(it) }.parseGetter())
-
-                    val setter = clazz.methods.find { it.name == setter }
-                    if (setter != null) {
-                        setter(setter.also { clazz.methods.remove(it) }.parseSetter())
-                        mutable()
-                    }
-                }
-            }.build()
-
-            if (spec.getter != null) spec else null
-        } else null
-    }
-}
-
+/*
 data class GSignal(
         val name: String,
         val arguments: List<GSignalArgument>
@@ -107,7 +79,7 @@ data class GSignalArgument(
         val type: String,
         val defaultValue: String
 )
-
+*/
 data class GMethod(
         val name: String,
         val returnType: String,
@@ -126,40 +98,38 @@ data class GMethod(
             .apply {
                 add(returnTypeDeclaration(returnType))
                 add(argumentDeclarations(arguments))
-                addStatement("api.c.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _owner, args, ${returnOutParameter(returnType)})")
+                addStatement("api.c.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
                 add(argumentCleanup(arguments))
                 add(returnStatement(returnType))
             }
             .endControlFlow()
             .build()
 
-    fun parseGetter(): FunSpec = FunSpec.builder("get()")
-            .addCode(functionBody())
-            .build()
-
-    fun parseSetter(): FunSpec = FunSpec.builder("set()")
-            .addParameter(arguments.map { it.parse() }.first())
-            .addCode(functionBody())
-            .build()
-
-    fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(name))
-            .addParameters(arguments.map { it.parse() })
-            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "ExperimentalUnsignedTypes")).build())
+    fun safeName(name: String) = if (name == "to_string") "to_g_string" else name
+    fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
             .apply {
-                if (isVirtual) {
+                if(!clazz.isObject) {
                     addModifiers(KModifier.OPEN)
                 }
+
                 var c = clazz
+                var override = false
+                var parent: GMethod? = null
                 loop@ while (c.baseClass.isNotBlank()) {
                     val bc = content.find { it.name == c.baseClass }!!
-                    val m = bc.methods.find { it.name == name }
+                    val m = bc.methods.find { it.name == name && it.arguments.map{it.type} == arguments.map{it.type} }
                     if (m != null) {
+                        modifiers.remove(KModifier.OPEN)
                         addModifiers(KModifier.OVERRIDE)
+                        override = true
+                        parent = m
                         break@loop
                     }
                     c = bc
                 }
+                addParameters(arguments.mapIndexed { index, it -> if(override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
             }
+            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "ExperimentalUnsignedTypes")).build())
             .addCode(functionBody())
             .returns(typeOf(returnType.removePrefix("enum.")))
             .build()
@@ -171,15 +141,19 @@ data class GMethod(
 }
 
 data class GMethodArgument(
-        private val name: String,
+        val name: String,
         val type: String,
         val hasDefaultValue: Boolean,
         val defaultValue: String
 ) {
-    fun safeName() = sanitised(name)
+    fun safeName() = sanitised(override)
+    private var override: String = name
 
-    fun parse(): ParameterSpec = ParameterSpec.builder(safeName(), typeOf(type))
-            .build()
+    fun parse(overrideName: String = name): ParameterSpec {
+        override = overrideName
+        return ParameterSpec.builder(safeName(), typeOf(type))
+                .build()
+    }
 }
 
 data class GEnum(
@@ -208,6 +182,10 @@ fun typeOf(type: String) = when (type) {
     "float", "real" -> Float::class.asClassName()
     "int" -> Int::class.asClassName()
     "bool" -> Boolean::class.asClassName()
+    "String" -> ClassName(PACKAGE, "GString")
+    "Vector3::Axis" -> ClassName(PACKAGE, "Vector3Axis")
+    "Variant::Operator" -> ClassName(PACKAGE, "VariantOperator")
+    "Variant::Type" -> ClassName(PACKAGE, "VariantType")
     else ->
         if (type.contains("::")) ClassName(PACKAGE, type.substringBefore("::"), type.substringAfter("::"))
         else ClassName(PACKAGE, type)
@@ -218,8 +196,9 @@ fun sanitised(value: String) = underscoreToCamelCase(when (value) {
     "object" -> "_object"
     "api" -> "_api"
     "interface" -> "_interface"
-    "event" -> "_event"
     "in" -> "_in"
+    "var" -> "_var"
+    "args" -> "arguments"
     else -> value
 })
 
@@ -238,6 +217,7 @@ fun toVar(value: String) =
             "int" -> MemberName("kotlinx.cinterop", "IntVar")
             "bool" -> MemberName("kotlinx.cinterop", "BooleanVar")
             "float", "real" -> MemberName("kotlinx.cinterop", "FloatVar")
+            "String" -> MemberName(PACKAGE, "GString")
             else ->
                 if (value.contains("::")) MemberName(PACKAGE, value.replace("::", "."))
                 else MemberName(PACKAGE, value)
@@ -268,7 +248,13 @@ fun isCoreType(value: String) = when (value) {
     "Transform2D",
     "Variant",
     "Vector2",
-    "Vector3" -> true
+    "Vector3",
+    "Vector3::Axis",
+    "Variant::Operator",
+    "Variant::Type",
+    "enum.Vector3::Axis",
+    "enum.Variant::Operator",
+    "enum.Variant::Type" -> true
     else -> false
 }
 
@@ -290,7 +276,7 @@ fun argumentDeclarations(arguments: List<GMethodArgument>) = CodeBlock.builder()
 fun returnOutParameter(type: String) = when {
     type == "void" -> "null"
     isEnum(type) || isCoreType(type) -> "ret.ptr"
-    !isPrimitive(type) -> "ret._owner"
+    !isPrimitive(type) -> "ret.mbOwner"
     else -> "ret.ptr"
 }
 
@@ -306,7 +292,7 @@ fun cleanEnum(name: String) = name.substringAfter("enum.")
 
 fun returnStatement(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
-        isEnum(type) && isCoreType(type) -> addStatement("return ${cleanEnum(type)}.byValue(ret.value)")
+        isEnum(type) && isCoreType(type) -> addStatement("return ${cleanEnum(type).replace(".", "").replace("::", "")}.byValue(ret.value)")
         isEnum(type) -> addStatement("return ${cleanEnum(type.replace("::", "."))}.values()[ret.value.toInt()]")
         isPointer(type) -> addStatement("return ret")
         isPrimitive(type) -> addStatement("return ret.value")

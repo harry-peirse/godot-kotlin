@@ -21,12 +21,16 @@ typealias Quat = godot_quat
 typealias Rect2 = godot_rect2
 typealias AABB = godot_aabb
 typealias RID = godot_rid
-typealias String = godot_string
+typealias GString = godot_string
 typealias Transform = godot_transform
 typealias Transform2D = godot_transform2d
 typealias Variant = godot_variant
 typealias Vector2 = godot_vector2
 typealias Vector3 = godot_vector3
+
+typealias VariantType = godot_variant_type
+typealias VariantOperator  = godot_variant_operator
+typealias Vector3Axis = godot_vector3_axis
 
 class KGDNative(
         val c: godot_gdnative_core_api_struct,
