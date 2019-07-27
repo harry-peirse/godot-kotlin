@@ -96,10 +96,7 @@ object Godot {
         _RegisterState.nativescriptHandle = handle
 
         memScoped {
-            val binding_funcs = cValue<godot_instance_binding_functions> {
-                // alloc_instance_binding_data = wrapper_create
-                // free_instance_binding_data = wrapper_destroy
-            }
+            val binding_funcs = cValue<godot_instance_binding_functions>() // TODO
             _RegisterState.languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(binding_funcs)
 
             _registerTypes()
@@ -114,12 +111,8 @@ object Godot {
 
     inline fun <reified T : S, reified S : Any> registerClass(registerMethods: () -> Unit = {}) {
         memScoped {
-            val create = cValue<godot_instance_create_func> {
-                //                create_func = staticCFunction(::_godot_class_instance_func).reinterpret()
-            }
-            val destroy = cValue<godot_instance_destroy_func> {
-                //                destroy_func = staticCFunction(::_godot_class_destroy_func).reinterpret()
-            }
+            val create = cValue<godot_instance_create_func>() // TODO
+            val destroy = cValue<godot_instance_destroy_func>() // TODO
 
             val typeTag = T::class.hashCode()
             val baseTypeTag = S::class.hashCode()
@@ -140,11 +133,7 @@ object Godot {
             val methodName = function.name.cstr.ptr
             val className = (T::class.qualifiedName?.substringAfter("godot.")
                     ?: T::class.hashCode().toString()).cstr.ptr
-            val method = cValue<godot_instance_method> {
-                method_data = staticCFunction(function)
-                free_func = Godot.api.godot_free
-                method = staticCFunction(function).reinterpret()
-            }
+            val method = cValue<godot_instance_method>() // TODO
             val attr = cValue<godot_method_attributes> {
                 rpc_type = rpc_type
             }
