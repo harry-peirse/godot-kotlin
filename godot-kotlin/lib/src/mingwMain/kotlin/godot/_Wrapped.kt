@@ -2,9 +2,11 @@ package godot
 
 import kotlinx.cinterop.*
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 abstract class _Wrapped {
-    val mbOwner: COpaquePointer = nativeHeap.alloc<COpaquePointerVar>().ptr.reinterpret()
-    fun destory() {
+    var mbOwner: COpaquePointer = nativeHeap.alloc<COpaquePointerVar>().ptr.reinterpret()
+    var typeTag: Int = 0
+    fun destroy() {
         nativeHeap.free(mbOwner)
     }
 }

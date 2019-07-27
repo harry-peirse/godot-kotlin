@@ -20,6 +20,14 @@ data class GClass(
         val methods: MutableList<GMethod>,
         val enums: List<GEnum>
 ) {
+    fun parseRegisterCall() = CodeBlock.builder()
+            .addStatement("%M.registerGlobalType(\"$name\", $name::class.hashCode(), ${if(baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})", MemberName(PACKAGE, "_TagDB"))
+            .build()
+
+    fun parseBindingCall() = CodeBlock.builder()
+            .addStatement("$name.initMethodBindings()")
+            .build()
+
     var isObject = singleton
     fun parse(content: List<GClass>): FileSpec {
         isObject = singleton && !hasSubClass(content)
@@ -56,11 +64,14 @@ data class GClass(
                     .initializer("MethodBindings()")
                     .build())
             .addFunction(FunSpec.builder("initMethodBindings")
+                    .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
+                            .addMember("ExperimentalUnsignedTypes::class")
+                            .build())
                     .addCode(CodeBlock.builder()
                             .beginControlFlow("memScoped")
                             .apply {
                                 methods.forEach {
-                                    addStatement("mb.${underscoreToCamelCase(it.name)} = api.c.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${underscoreToCamelCase(it.name)}\".cstr.ptr)")
+                                    addStatement("mb.${underscoreToCamelCase(it.name)} = Godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${underscoreToCamelCase(it.name)}\".cstr.ptr)")
                                 }
                             }
                             .endControlFlow()
@@ -98,7 +109,7 @@ data class GMethod(
             .apply {
                 add(returnTypeDeclaration(returnType))
                 add(argumentDeclarations(arguments))
-                addStatement("api.c.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
+                addStatement("Godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
                 add(argumentCleanup(arguments))
                 add(returnStatement(returnType))
             }
@@ -129,7 +140,9 @@ data class GMethod(
                 }
                 addParameters(arguments.mapIndexed { index, it -> if(override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
             }
-            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "ExperimentalUnsignedTypes")).build())
+            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
+                    .addMember("ExperimentalUnsignedTypes::class")
+                    .build())
             .addCode(functionBody())
             .returns(typeOf(returnType.removePrefix("enum.")))
             .build()

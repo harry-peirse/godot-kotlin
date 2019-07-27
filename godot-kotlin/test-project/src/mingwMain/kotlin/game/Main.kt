@@ -1,24 +1,50 @@
 package game
 
-import godot.test
-import godotapi.godot_gdnative_init_options
-import godotapi.godot_gdnative_terminate_options
-import kotlinx.cinterop.COpaquePointer
+import godot.*
+import kotlinx.cinterop.invoke
+import kotlinx.cinterop.pointed
+import kotlinx.cinterop.reinterpret
+import kotlin.math.cos
+import kotlin.math.sin
 
-@CName("godot_gdnative_init")
-fun gdNativeInit(options: godot_gdnative_init_options) {
-    godot.gdNativeInit(options)
+@CName(GDNATIVE_INIT)
+fun gdNativeInit(options: GDNativeInitOptions) {
+    Godot.gdNativeInit(options)
 }
 
-@CName("godot_gdnative_terminate")
-fun gdNativeTerminate(options: godot_gdnative_terminate_options) {
-    godot.gdNativeTerminate(options)
+@CName(GDNATIVE_TERMINATE)
+fun gdNativeTerminate(options: GDNativeTerminateOptions) {
+    Godot.gdNativeTerminate(options)
 }
 
-@ExperimentalUnsignedTypes
-@CName("godot_nativescript_init")
-fun nativeScriptInit(handle: COpaquePointer) {
-    godot.nativeScriptInit(handle)
+@CName(NATIVESCRIPT_INIT)
+fun nativeScriptInit(handle: NativescriptHandle) {
+    Godot.nativeScriptInit(handle)
 
-    test()
+    Godot.registerClass<Sample, Sprite>(Sample::registerMethods)
+}
+
+class Sample : Sprite() {
+
+    var timePassed: Float = 0f
+
+    override fun _init() {
+        Godot.print("Init the Sample!!")
+    }
+
+    override fun _process(delta: Float) {
+        Godot.print("Process with delta $delta from the Sample!!")
+
+        timePassed += delta
+
+        val newPosition = Godot.api.godot_alloc!!(Vector2.size.toInt())!!.reinterpret<Vector2>()
+        Godot.api.godot_vector2_new!!(newPosition, 10f + 10f * sin(timePassed * 2f), 10f + 10f * cos(timePassed * 1.5f))
+        setPosition(newPosition.pointed)
+    }
+
+    companion object {
+        fun registerMethods() {
+            Godot.registerMethod(Sample::_process)
+        }
+    }
 }
