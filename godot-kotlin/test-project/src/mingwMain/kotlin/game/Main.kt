@@ -21,7 +21,7 @@ fun gdNativeTerminate(options: GDNativeTerminateOptions) {
 fun nativeScriptInit(handle: NativescriptHandle) {
     Godot.nativeScriptInit(handle)
 
-    Godot.registerClass<Sample, Sprite>(Sample::registerMethods)
+    Godot.registerClass<Sample, Sprite>(Sample.Companion::registerMethods)
 }
 
 class Sample : Sprite() {
