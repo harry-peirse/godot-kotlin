@@ -1,0 +1,7 @@
+[gd_resource type="GDNativeLibrary" format=2]
+
+[resource]
+entry/Windows.64 = "res://godot-kotlin/test-project/build/bin/mingw/releaseShared/test_project.dll"
+entry/Windows.32 = "res://godot-kotlin/test-project/build/bin/mingw/releaseShared/test_project.dll"
+dependency/Windows.64 = [  ]
+dependency/Windows.32 = [  ]
