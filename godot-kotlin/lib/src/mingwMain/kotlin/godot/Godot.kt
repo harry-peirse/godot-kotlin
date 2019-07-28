@@ -120,6 +120,7 @@ object Godot {
             val typeName = T::class.qualifiedName?.substringAfter("godot.") ?: typeTag.toString()
             val baseTypeName = S::class.qualifiedName?.substringAfter("godot.") ?: baseTypeTag.toString()
 
+            print("registering class $typeName : $baseTypeName, with tag $typeTag : $baseTypeTag")
             _TagDB.registerType(typeTag, baseTypeTag)
 
             Godot.nativescriptApi.godot_nativescript_register_class!!(Godot._RegisterState.nativescriptHandle, typeName.cstr.ptr, baseTypeName.cstr.ptr, create, destroy)

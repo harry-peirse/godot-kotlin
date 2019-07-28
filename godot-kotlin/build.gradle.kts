@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "1.3.41"
+    `build-scan`
 }
 
 allprojects {
@@ -9,4 +10,9 @@ allprojects {
     repositories {
         mavenCentral()
     }
+}
+
+buildScan {
+    termsOfServiceUrl = "https://gradle.com/terms-of-service"
+    termsOfServiceAgree = "yes"
 }

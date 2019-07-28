@@ -9,16 +9,19 @@ import kotlin.math.sin
 
 @CName(GDNATIVE_INIT)
 fun gdNativeInit(options: GDNativeInitOptions) {
+    Godot.print("gdNativeInit(${options.in_editor})")
     Godot.gdNativeInit(options)
 }
 
 @CName(GDNATIVE_TERMINATE)
 fun gdNativeTerminate(options: GDNativeTerminateOptions) {
+    Godot.print("gdNativeTerminate(${options.in_editor})")
     Godot.gdNativeTerminate(options)
 }
 
 @CName(NATIVESCRIPT_INIT)
-fun nativeScriptInit(handle: NativescriptHandle) {
+fun nativescriptInit(handle: NativescriptHandle) {
+    Godot.print("nativescriptInit")
     Godot.nativeScriptInit(handle)
 
     Godot.registerClass<Sample, Sprite>(Sample.Companion::registerMethods)
@@ -28,10 +31,12 @@ class Sample : Sprite() {
 
     var timePassed: Float = 0f
 
+    @CName("godot_init")
     override fun _init() {
         Godot.print("Init the Sample!!")
     }
 
+    @CName("godot_process")
     override fun _process(delta: Float) {
         Godot.print("Process with delta $delta from the Sample!!")
 

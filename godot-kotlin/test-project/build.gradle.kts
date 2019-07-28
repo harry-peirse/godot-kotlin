@@ -7,7 +7,7 @@ kotlin {
         compilations {
             val main by getting {
                 binaries {
-                    sharedLib()
+                    sharedLib(listOf(RELEASE))
                 }
                 dependencies {
                     implementation(project(":lib"))
