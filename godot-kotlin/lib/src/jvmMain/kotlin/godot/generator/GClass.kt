@@ -21,7 +21,7 @@ data class GClass(
         val enums: List<GEnum>
 ) {
     fun parseRegisterCall() = CodeBlock.builder()
-            .addStatement("%M.registerGlobalType(\"$name\", $name::class.hashCode(), ${if(baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})", MemberName(PACKAGE, "_TagDB"))
+            .addStatement("_TagDB_registerGlobalType(\"$name\", $name::class.hashCode(), ${if(baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})")
             .build()
 
     fun parseBindingCall() = CodeBlock.builder()
@@ -71,7 +71,7 @@ data class GClass(
                             .beginControlFlow("memScoped")
                             .apply {
                                 methods.forEach {
-                                    addStatement("mb.${underscoreToCamelCase(it.name)} = Godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${underscoreToCamelCase(it.name)}\".cstr.ptr)")
+                                    addStatement("mb.${underscoreToCamelCase(it.name)} = Godot_api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${underscoreToCamelCase(it.name)}\".cstr.ptr)")
                                 }
                             }
                             .endControlFlow()
@@ -109,7 +109,7 @@ data class GMethod(
             .apply {
                 add(returnTypeDeclaration(returnType))
                 add(argumentDeclarations(arguments))
-                addStatement("Godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
+                addStatement("Godot_api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
                 add(argumentCleanup(arguments))
                 add(returnStatement(returnType))
             }

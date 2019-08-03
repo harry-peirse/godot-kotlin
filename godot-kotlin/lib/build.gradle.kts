@@ -10,18 +10,12 @@ application {
 val generatedSrcDir = file("$projectDir/src/generated/kotlin")
 
 kotlin {
-
-    // Add JVM Target (for Kotlin class generation)
     jvm {
         withJava()
     }
-
     mingwX64("mingw") {
         compilations {
             val main by getting {
-//                binaries {
-//                    staticLib(listOf(RELEASE))
-//                }
                 kotlinOptions {
                     freeCompilerArgs = freeCompilerArgs + "-Xuse-experimental=kotlin.Experimental"
                 }
