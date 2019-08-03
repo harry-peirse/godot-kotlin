@@ -41,104 +41,128 @@ typealias VariantType = godot_variant_type
 typealias VariantOperator = godot_variant_operator
 typealias Vector3Axis = godot_vector3_axis
 
-lateinit var Godot_api: godot_gdnative_core_api_struct
-lateinit var Godot_gdnlib: COpaquePointer
-lateinit var Godot_nativescriptApi: godot_gdnative_ext_nativescript_api_struct
-lateinit var Godot_nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
+class Godot {
 
-fun Godot_print(message: Any?) {
-    memScoped {
-        val string = message.toString()
-        val data: CPointer<godot_string> = Godot_api.godot_alloc!!(string.length)!!.reinterpret()
-        Godot_api.godot_string_new!!(data)
-        Godot_api.godot_string_parse_utf8!!(data, string.cstr.ptr)
-        Godot_api.godot_print!!(data)
-        Godot_api.godot_string_destroy!!(data)
+    val tagDB = TagDB()
+    lateinit var api: godot_gdnative_core_api_struct
+    lateinit var gdnlib: COpaquePointer
+    lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
+    lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
+
+    fun print(message: Any?) {
+        memScoped {
+            val string = message.toString()
+            val data: CPointer<godot_string> = api.godot_alloc!!(string.length)!!.reinterpret()
+            api.godot_string_new!!(data)
+            api.godot_string_parse_utf8!!(data, string.cstr.ptr)
+            api.godot_print!!(data)
+            api.godot_string_destroy!!(data)
+        }
     }
-}
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
-fun Godot_gdNativeInit(options: GDNativeInitOptions) {
-    Godot_api = options.api_struct!!.pointed
-    Godot_gdnlib = options.gd_native_library!!
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    fun gdNativeInit(options: GDNativeInitOptions) {
+        api = if (options.api_struct?.pointed != null) options.api_struct?.pointed!! else {
+            println("api is null!")
+            throw NullPointerException("api is null!")
+        }
+        gdnlib = if (options.gd_native_library != null) options.gd_native_library!! else {
+            println("gdnlib is null!")
+            throw NullPointerException("gdnlib is null!")
+        }
 
-    for (i in 0..Godot_api.num_extensions.toInt()) {
-        when (Godot_api.extensions!![i]!!.pointed.type) {
-            GDNATIVE_API_TYPES.GDNATIVE_EXT_NATIVESCRIPT.value -> {
-                Godot_nativescriptApi = Godot_api.extensions!![i]!!.reinterpret<godot_gdnative_ext_nativescript_api_struct>().pointed
-                var extension: CPointer<godot_gdnative_api_struct>? = Godot_nativescriptApi.next
-                while (extension != null) {
-                    if (extension.pointed.version.major == 1u && extension.pointed.version.minor == 1u) {
-                        Godot_nativescript11Api = extension.reinterpret<godot_gdnative_ext_nativescript_1_1_api_struct>().pointed
+        for (i in 0 until api.num_extensions.toInt()) {
+            when (api.extensions?.get(i)?.pointed?.type) {
+                GDNATIVE_API_TYPES.GDNATIVE_EXT_NATIVESCRIPT.value -> {
+                    val temp = api.extensions?.get(i)?.reinterpret<godot_gdnative_ext_nativescript_api_struct>()?.pointed
+                    nativescriptApi = if (temp != null) temp else {
+                        println("nativescriptApi is null!")
+                        throw NullPointerException("nativescriptApi is null!")
                     }
-                    extension = extension.pointed.next
+                    var extension: CPointer<godot_gdnative_api_struct>? = nativescriptApi.next
+                    while (extension != null) {
+                        if (extension.pointed.version.major == 1u && extension.pointed.version.minor == 1u) {
+                            nativescript11Api = extension.reinterpret<godot_gdnative_ext_nativescript_1_1_api_struct>().pointed
+                        }
+                        extension = extension.pointed.next
+                    }
                 }
             }
         }
     }
-}
 
-fun Godot_gdNativeTerminate(options: GDNativeTerminateOptions) = Unit
+    fun gdNativeTerminate(options: GDNativeTerminateOptions) = Unit
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
-fun Godot_gdnativeProfilingAddData(signature: String, time: ULong) {
-    memScoped {
-        Godot_nativescript11Api.godot_nativescript_profiling_add_data!!(signature.cstr.ptr, time)
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    fun gdnativeProfilingAddData(signature: String, time: ULong) {
+        memScoped {
+            if (nativescript11Api.godot_nativescript_profiling_add_data != null) {
+                nativescript11Api.godot_nativescript_profiling_add_data!!(signature.cstr.ptr, time)
+            } else {
+                println("nativescript11Api.godot_nativescript_profiling_add_data is null!")
+                throw NullPointerException("nativescript11Api.godot_nativescript_profiling_add_data is null!")
+            }
+        }
     }
-}
 
-fun Godot_nativescriptTerminate(handle: NativescriptHandle) {
-    Godot_nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions!!(Godot_RegisterState_languageIndex)
-}
+    fun nativescriptTerminate(handle: NativescriptHandle) {
+        if (nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions != null) {
+            nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions!!(languageIndex)
+        } else {
+            println("nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions is null!")
+            throw NullPointerException("nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions is null!")
+        }
+    }
 
-fun Godot_nativeScriptInit(handle: NativescriptHandle) {
-    Godot_RegisterState_nativescriptHandle = handle
+    fun nativeScriptInit(handle: NativescriptHandle) {
+        nativescriptHandle = handle
 
-    memScoped {
-        val binding_funcs = cValue<godot_instance_binding_functions>() // TODO
-        Godot_RegisterState_languageIndex = Godot_nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(binding_funcs)
+        memScoped {
+            val binding_funcs = cValue<godot_instance_binding_functions>() // TODO
+            languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(binding_funcs)
 
 //            _registerTypes()
 //            _initMethodBindings()
-    }
-}
-
-
-lateinit var Godot_RegisterState_nativescriptHandle: COpaquePointer
-var Godot_RegisterState_languageIndex: Int = -1
-
-
-inline fun <reified T : S, reified S : Any> Godot_registerClass(registerMethods: () -> Unit = {}) {
-    memScoped {
-        val create = cValue<godot_instance_create_func>() // TODO
-        val destroy = cValue<godot_instance_destroy_func>() // TODO
-
-        val typeTag = T::class.hashCode()
-        val baseTypeTag = S::class.hashCode()
-
-        val typeName = T::class.qualifiedName?.substringAfter("godot.") ?: typeTag.toString()
-        val baseTypeName = S::class.qualifiedName?.substringAfter("godot.") ?: baseTypeTag.toString()
-
-        print("registering class $typeName : $baseTypeName, with tag $typeTag : $baseTypeTag")
-        _TagDB_registerType(typeTag, baseTypeTag)
-
-        Godot_nativescriptApi.godot_nativescript_register_class!!(Godot_RegisterState_nativescriptHandle, typeName.cstr.ptr, baseTypeName.cstr.ptr, create, destroy)
-        Godot_nativescript11Api.godot_nativescript_set_type_tag!!(Godot_RegisterState_nativescriptHandle, typeName.cstr.ptr, alloc<IntVar> { value = typeTag }.ptr)
-        registerMethods()
-    }
-}
-
-@UseExperimental(ExperimentalUnsignedTypes::class)
-inline fun <reified T : Any> Godot_registerMethod(function: KFunction2<T, Float, Unit>, rpcType: UInt = GODOT_METHOD_RPC_MODE_DISABLED) {
-    memScoped {
-        val methodName = function.name.cstr.ptr
-        val className = (T::class.qualifiedName?.substringAfter("godot.")
-                ?: T::class.hashCode().toString()).cstr.ptr
-        val method = cValue<godot_instance_method>() // TODO
-        val attr = cValue<godot_method_attributes> {
-            rpc_type = rpc_type
         }
+    }
 
-        Godot_nativescriptApi.godot_nativescript_register_method!!(Godot_RegisterState_nativescriptHandle, className, methodName, attr, method)
+    lateinit var nativescriptHandle: COpaquePointer
+    var languageIndex: Int = -1
+
+    inline fun <reified T : S, reified S : Any> registerClass(registerMethods: () -> Unit = {}) {
+        memScoped {
+            val create = cValue<godot_instance_create_func>() // TODO
+            val destroy = cValue<godot_instance_destroy_func>() // TODO
+
+            val typeTag = T::class.hashCode()
+            val baseTypeTag = S::class.hashCode()
+
+            val typeName = T::class.qualifiedName?.substringAfter("godot.") ?: typeTag.toString()
+            val baseTypeName = S::class.qualifiedName?.substringAfter("godot.") ?: baseTypeTag.toString()
+
+            print("registering class $typeName : $baseTypeName, with tag $typeTag : $baseTypeTag")
+            tagDB.registerType(typeTag, baseTypeTag)
+
+            nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, typeName.cstr.ptr, baseTypeName.cstr.ptr, create, destroy)
+            nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, typeName.cstr.ptr, alloc<IntVar> { value = typeTag }.ptr)
+            registerMethods()
+        }
+    }
+
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    inline fun <reified T : Any> registerMethod(function: KFunction2<T, Float, Unit>, rpcType: UInt = GODOT_METHOD_RPC_MODE_DISABLED) {
+        memScoped {
+            val methodName = function.name.cstr.ptr
+            val className = (T::class.qualifiedName?.substringAfter("godot.")
+                    ?: T::class.hashCode().toString()).cstr.ptr
+            val method = cValue<godot_instance_method>() // TODO
+            val attr = cValue<godot_method_attributes> {
+                rpc_type = rpc_type
+            }
+
+            nativescriptApi.godot_nativescript_register_method!!(nativescriptHandle, className, methodName, attr, method)
+        }
     }
 }
+
+val godot = Godot()
