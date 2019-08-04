@@ -42,6 +42,14 @@ typealias VariantType = godot_variant_type
 typealias VariantOperator = godot_variant_operator
 typealias Vector3Axis = godot_vector3_axis
 
+fun _constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? = memScoped {
+    return godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.api.godot_get_class_constructor!!("".cstr.ptr))
+}
+
+fun _destructor(instance: COpaquePointer?, method_data: COpaquePointer?, user_data: COpaquePointer?) {
+    godot.api.godot_free!!(user_data)
+}
+
 class Godot {
 
     val tagDB = TagDB()
@@ -130,14 +138,6 @@ class Godot {
     lateinit var nativescriptHandle: COpaquePointer
     var languageIndex: Int = -1
 
-    fun _constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? = memScoped {
-        return godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.api.godot_get_class_constructor!!("".cstr.ptr))
-    }
-
-    fun _destructor(instance: COpaquePointer?, method_data: COpaquePointer?, user_data: COpaquePointer?) {
-        godot.api.godot_free!!(user_data)
-    }
-
     inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>) {
         memScoped {
             val create = cValue<godot_instance_create_func> {
@@ -157,12 +157,12 @@ class Godot {
     }
 
     @UseExperimental(ExperimentalUnsignedTypes::class)
-    inline fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, function: KFunction5<COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?, CValue<godot_variant>>) {
+    inline fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, functionName: String, function: CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?) -> CValue<godot_variant>>>) {
         memScoped {
-            val methodName = function.name.cstr.ptr
+            val methodName = functionName.cstr.ptr
             val className = godotClass.getTypeName().cstr.ptr
             val method = cValue<godot_instance_method> {
-                method = staticCFunction(function)
+                method = function
             }
             val attr = cValue<godot_method_attributes> {
                 rpc_type = GODOT_METHOD_RPC_MODE_DISABLED
@@ -207,8 +207,8 @@ interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
         return instance
     }
 
-    fun registerMethod(function: KFunction5<COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?, CValue<godot_variant>>) {
-        godot.registerMethod(this, function)
+    fun registerMethod(functionName: String, function: CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?) -> CValue<godot_variant>>>) {
+        godot.registerMethod(this, functionName, function)
     }
 }
 

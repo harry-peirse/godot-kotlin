@@ -8,5 +8,5 @@ abstract class Wrapped {
     var _userData: COpaquePointer? = null
     var _owner: COpaquePointer? = null
     var _typeTag: Int = 0
-    fun _init() {}
+    open fun _init() {}
 }

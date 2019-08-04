@@ -75,7 +75,7 @@ class SimpleTest : Node() {
         override val baseType = Node::class
         override fun _new() = SimpleTest()
         override fun registerMethods() {
-            registerMethod(::getData)
+            registerMethod("get_data", staticCFunction(::getData))
         }
     }
 }
