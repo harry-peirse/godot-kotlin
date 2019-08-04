@@ -1,11 +1,11 @@
 package game
 
 import godot.*
-import kotlinx.cinterop.invoke
-import kotlinx.cinterop.pointed
-import kotlinx.cinterop.reinterpret
-import kotlin.math.cos
-import kotlin.math.sin
+import godotapi.GODOT_METHOD_RPC_MODE_DISABLED
+import godotapi.godot_string
+import godotapi.godot_variant
+import kotlinx.cinterop.*
+import platform.posix.strcpy
 
 @CName(GDNATIVE_INIT)
 fun gdNativeInit(options: GDNativeInitOptions) {
@@ -35,38 +35,47 @@ fun nativescriptInit(handle: NativescriptHandle) {
         godot.nativeScriptInit(handle)
         godot.print("nativescriptInit")
 
-        test()
-
-//        Godot.registerClass<Sample, Sprite>(Sample.Companion::registerMethods)
+        godot.registerClass(SimpleTest._GODOT_CLASS)
     } catch (e: Exception) {
         println(e.message)
         e.printStackTrace()
     }
 }
 
-class Sample : Sprite() {
+class SimpleTest : Node() {
+    companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Node> {
+        @CName("godot_get_data")
+        fun getData(godot_object: COpaquePointer?,
+                    method_data: COpaquePointer?,
+                    user_data: COpaquePointer?,
+                    num_args: Int,
+                    args: CPointer<CPointerVar<godot_variant>>?
+        ): CValue<godot_variant> {
+            val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
+            val userData: CPointer<ByteVar> = user_data!!.reinterpret()
+            godot.api.godot_string_new!!(data)
+            godot.api.godot_string_parse_utf8!!(data, userData)
 
-    var timePassed: Float = 0f
+            val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+            godot.api.godot_variant_new_string!!(ret, data)
+            godot.api.godot_string_destroy!!(data)
 
-    @CName("godot_init")
-    override fun _init() {
-        godot.print("Init the Sample!!")
-    }
+            return ret.pointed.readValue()
+        }
 
-    @CName("godot_process")
-    override fun _process(delta: Float) {
-        godot.print("Process with delta $delta from the Sample!!")
+        fun simple_constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
+            val user_data: COpaquePointer? = godot.api.godot_alloc!!("World from GDNative!".cstr.size)
+            val p: CPointer<ByteVar> = user_data!!.reinterpret()
+            strcpy(p, "World from GDNative!")
 
-        timePassed += delta
+            return user_data
+        }
 
-        val newPosition = godot.api.godot_alloc!!(Vector2.size.toInt())!!.reinterpret<Vector2>()
-        godot.api.godot_vector2_new!!(newPosition, 10f + 10f * sin(timePassed * 2f), 10f + 10f * cos(timePassed * 1.5f))
-        setPosition(newPosition.pointed)
-    }
-
-    companion object {
-        fun registerMethods() {
-            godot.registerMethod(Sample::_process)
+        override val type = SimpleTest::class
+        override val baseType = Node::class
+        override fun _new() = SimpleTest()
+        override fun registerMethods() {
+            registerMethod(::getData)
         }
     }
 }

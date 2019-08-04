@@ -4,9 +4,9 @@ import kotlinx.cinterop.*
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 abstract class Wrapped {
-    var mbOwner: COpaquePointer = nativeHeap.alloc<COpaquePointerVar>().ptr.reinterpret()
-    var typeTag: Int = 0
-    fun destroy() {
-        nativeHeap.free(mbOwner)
-    }
+    var _instanceBindingData: COpaquePointer? = null
+    var _userData: COpaquePointer? = null
+    var _owner: COpaquePointer? = null
+    var _typeTag: Int = 0
+    fun _init() {}
 }

@@ -2,7 +2,8 @@ package godot
 
 import godotapi.*
 import kotlinx.cinterop.*
-import kotlin.reflect.KFunction2
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction5
 
 const val GDNATIVE_INIT = "godot_gdnative_init"
 const val GDNATIVE_TERMINATE = "godot_gdnative_terminate"
@@ -129,39 +130,85 @@ class Godot {
     lateinit var nativescriptHandle: COpaquePointer
     var languageIndex: Int = -1
 
-    inline fun <reified T : S, reified S : Any> registerClass(registerMethods: () -> Unit = {}) {
+    fun _constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? = memScoped {
+        return godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.api.godot_get_class_constructor!!("".cstr.ptr))
+    }
+
+    fun _destructor(instance: COpaquePointer?, method_data: COpaquePointer?, user_data: COpaquePointer?) {
+        godot.api.godot_free!!(user_data)
+    }
+
+    inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>) {
         memScoped {
-            val create = cValue<godot_instance_create_func>() // TODO
-            val destroy = cValue<godot_instance_destroy_func>() // TODO
+            val create = cValue<godot_instance_create_func> {
+                create_func = staticCFunction(::_constructor)
+            }
+            val destroy = cValue<godot_instance_destroy_func> {
+                destroy_func = staticCFunction(::_destructor)
+            }
 
-            val typeTag = T::class.hashCode()
-            val baseTypeTag = S::class.hashCode()
+            print("registering class ${clazz.getTypeName()} : ${clazz.getBaseTypeName()}, with tag ${clazz.getTypeTag()} : ${clazz.getBaseTypeTag()}")
+            tagDB.registerType(clazz.getTypeTag(), clazz.getBaseTypeTag())
 
-            val typeName = T::class.qualifiedName?.substringAfter("godot.") ?: typeTag.toString()
-            val baseTypeName = S::class.qualifiedName?.substringAfter("godot.") ?: baseTypeTag.toString()
-
-            print("registering class $typeName : $baseTypeName, with tag $typeTag : $baseTypeTag")
-            tagDB.registerType(typeTag, baseTypeTag)
-
-            nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, typeName.cstr.ptr, baseTypeName.cstr.ptr, create, destroy)
-            nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, typeName.cstr.ptr, alloc<IntVar> { value = typeTag }.ptr)
-            registerMethods()
+            nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, clazz.getBaseTypeName().cstr.ptr, create, destroy)
+            nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, alloc<IntVar> { value = clazz.getTypeTag() }.ptr)
+            clazz.registerMethods()
         }
     }
 
     @UseExperimental(ExperimentalUnsignedTypes::class)
-    inline fun <reified T : Any> registerMethod(function: KFunction2<T, Float, Unit>, rpcType: UInt = GODOT_METHOD_RPC_MODE_DISABLED) {
+    inline fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, function: KFunction5<COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?, CValue<godot_variant>>) {
         memScoped {
             val methodName = function.name.cstr.ptr
-            val className = (T::class.qualifiedName?.substringAfter("godot.")
-                    ?: T::class.hashCode().toString()).cstr.ptr
-            val method = cValue<godot_instance_method>() // TODO
+            val className = godotClass.getTypeName().cstr.ptr
+            val method = cValue<godot_instance_method> {
+                method = staticCFunction(function)
+            }
             val attr = cValue<godot_method_attributes> {
-                rpc_type = rpc_type
+                rpc_type = GODOT_METHOD_RPC_MODE_DISABLED
             }
 
             nativescriptApi.godot_nativescript_register_method!!(nativescriptHandle, className, methodName, attr, method)
         }
+    }
+}
+
+interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
+    val type: KClass<TYPE>
+    val baseType: KClass<BASE_TYPE>
+    fun _new(): TYPE
+    fun registerMethods()
+
+    fun getTypeName() = type.simpleName ?: throw IllegalStateException("Missing TypeName")
+    fun getTypeTag() = type.simpleName.hashCode()
+    fun getBaseTypeName() = baseType.simpleName ?: throw IllegalStateException("Missing BaseTypeName")
+    fun getBaseTypeTag() = baseType.simpleName.hashCode()
+
+    fun new(): TYPE {
+        val script = NativeScript()
+        val gdNative = GDNativeLibrary()
+        gdNative._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.gdnlib)
+        script.setLibrary(gdNative)
+
+        memScoped {
+            val typeName: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
+            godot.api.godot_string_new!!(typeName)
+            godot.api.godot_string_parse_utf8!!(typeName, getTypeName().cstr.ptr)
+            script.setClassName(typeName.pointed)
+            val instance: TYPE = _new()
+            instance._userData = godot.nativescriptApi.godot_nativescript_get_userdata!!(script.new()._owner)
+            return instance
+        }
+    }
+
+    fun getFromVariant(a: CPointer<Variant>): TYPE {
+        val instance: TYPE = _new()
+        instance._userData = godot.nativescriptApi.godot_nativescript_get_userdata!!(Object.getFromVariant(a)._owner)
+        return instance
+    }
+
+    fun registerMethod(function: KFunction5<COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?, CValue<godot_variant>>) {
+        godot.registerMethod(this, function)
     }
 }
 

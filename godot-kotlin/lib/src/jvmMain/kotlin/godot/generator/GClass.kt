@@ -21,19 +21,19 @@ data class GClass(
         val enums: List<GEnum>
 ) {
     fun parseRegisterCall() = CodeBlock.builder()
-            .addStatement("godot.tagDB.registerGlobalType(\"$name\", $name::class.hashCode(), ${if(baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})")
+            .addStatement("godot.tagDB.registerGlobalType(\"$name\", $name::class.hashCode(), ${if (baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})")
             .build()
 
     fun parseBindingCall() = CodeBlock.builder()
             .addStatement("$name.initMethodBindings()")
             .build()
 
-    var isObject = singleton
+//    var isObject = singleton
     fun parse(content: List<GClass>): FileSpec {
-        isObject = singleton && !hasSubClass(content)
+//        isObject = singleton && !hasSubClass(content)
         return FileSpec.builder(PACKAGE, name)
-                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr")
-                .addType((if (isObject) buildCore(TypeSpec.objectBuilder(ClassName(PACKAGE, name))) else TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
+                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr", "reinterpret")
+                .addType((/*if (isObject) buildCore(TypeSpec.objectBuilder(ClassName(PACKAGE, name))) else*/ TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addFunctions(methods.map { method -> method.parse(this, content) })
                         .apply {
@@ -42,7 +42,7 @@ data class GClass(
                             } else {
                                 superclass(ClassName(PACKAGE, baseClass))
                             }
-                            if (!isObject) addModifiers(KModifier.OPEN)
+                            /*if (!isObject)*/ addModifiers(KModifier.OPEN)
                         }
                         .build()
                 ).build()
@@ -60,7 +60,7 @@ data class GClass(
             .addType(TypeSpec.classBuilder("MethodBindings")
                     .addProperties(methods.map { it.parseBinding() })
                     .build())
-            .addProperty(PropertySpec.builder("mb", if (isObject) ClassName(PACKAGE, name, "MethodBindings") else TypeVariableName("MethodBindings"))
+            .addProperty(PropertySpec.builder("mb", /*if (isObject) ClassName(PACKAGE, name, "MethodBindings") else*/ TypeVariableName("MethodBindings"))
                     .initializer("MethodBindings()")
                     .build())
             .addFunction(FunSpec.builder("initMethodBindings")
@@ -75,6 +75,15 @@ data class GClass(
                                 }
                             }
                             .endControlFlow()
+                            .build())
+                    .build())
+            .addFunction(FunSpec.builder("getFromVariant")
+                    .returns(ClassName(PACKAGE, name))
+                    .addParameter("variant", cCPointer.parameterizedBy(ClassName(PACKAGE, "Variant")))
+                    .addCode(CodeBlock.builder()
+                            .addStatement("val instance = $name()")
+                            .addStatement("instance._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant.reinterpret())")
+                            .addStatement("return instance")
                             .build())
                     .build())
 }
@@ -109,7 +118,7 @@ data class GMethod(
             .apply {
                 add(returnTypeDeclaration(returnType))
                 add(argumentDeclarations(arguments))
-                addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, mbOwner, args, ${returnOutParameter(returnType)})")
+                addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _owner, args, ${returnOutParameter(returnType)})")
                 add(argumentCleanup(arguments))
                 add(returnStatement(returnType))
             }
@@ -119,8 +128,12 @@ data class GMethod(
     fun safeName(name: String) = if (name == "to_string") "to_g_string" else name
     fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
             .apply {
-                if(!clazz.isObject) {
+//                if (!clazz.isObject) {
                     addModifiers(KModifier.OPEN)
+//                }
+
+                if (name == "_init") {
+                    addModifiers(KModifier.OVERRIDE)
                 }
 
                 var c = clazz
@@ -128,7 +141,7 @@ data class GMethod(
                 var parent: GMethod? = null
                 loop@ while (c.baseClass.isNotBlank()) {
                     val bc = content.find { it.name == c.baseClass }!!
-                    val m = bc.methods.find { it.name == name && it.arguments.map{it.type} == arguments.map{it.type} }
+                    val m = bc.methods.find { it.name == name && it.arguments.map { it.type } == arguments.map { it.type } }
                     if (m != null) {
                         modifiers.remove(KModifier.OPEN)
                         addModifiers(KModifier.OVERRIDE)
@@ -138,7 +151,7 @@ data class GMethod(
                     }
                     c = bc
                 }
-                addParameters(arguments.mapIndexed { index, it -> if(override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
+                addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
             }
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                     .addMember("ExperimentalUnsignedTypes::class")
@@ -289,7 +302,7 @@ fun argumentDeclarations(arguments: List<GMethodArgument>) = CodeBlock.builder()
 fun returnOutParameter(type: String) = when {
     type == "void" -> "null"
     isEnum(type) || isCoreType(type) -> "ret.ptr"
-    !isPrimitive(type) -> "ret.mbOwner"
+    !isPrimitive(type) -> "ret._instanceBindingData"
     else -> "ret.ptr"
 }
 
@@ -307,7 +320,11 @@ fun returnStatement(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
         isEnum(type) && isCoreType(type) -> addStatement("return ${cleanEnum(type).replace(".", "").replace("::", "")}.byValue(ret.value)")
         isEnum(type) -> addStatement("return ${cleanEnum(type.replace("::", "."))}.values()[ret.value.toInt()]")
-        isPointer(type) -> addStatement("return ret")
+        isCoreType(type) -> addStatement("return ret")
+        isPointer(type) -> {
+            addStatement("ret._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._owner)")
+            addStatement("return ret")
+        }
         isPrimitive(type) -> addStatement("return ret.value")
         else -> addStatement("return ret.pointed.value")
     }
