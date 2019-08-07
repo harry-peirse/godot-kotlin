@@ -130,8 +130,8 @@ class Godot {
             val binding_funcs = cValue<godot_instance_binding_functions>() // TODO
             languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(binding_funcs)
 
-//            _registerTypes()
-//            _initMethodBindings()
+            _registerTypes()
+            _initMethodBindings()
         }
     }
 

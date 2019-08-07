@@ -42,27 +42,27 @@ fun nativescriptInit(handle: NativescriptHandle) {
     }
 }
 
+@CName("godot_get_data")
+fun getData(godot_object: COpaquePointer?,
+            method_data: COpaquePointer?,
+            user_data: COpaquePointer?,
+            num_args: Int,
+            args: CPointer<CPointerVar<godot_variant>>?
+): CValue<godot_variant> {
+    val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
+    val userData: CPointer<ByteVar> = user_data!!.reinterpret()
+    godot.api.godot_string_new!!(data)
+    godot.api.godot_string_parse_utf8!!(data, userData)
+
+    val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+    godot.api.godot_variant_new_string!!(ret, data)
+    godot.api.godot_string_destroy!!(data)
+
+    return ret.pointed.readValue()
+}
+
 class SimpleTest : Node() {
     companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Node> {
-        @CName("godot_get_data")
-        fun getData(godot_object: COpaquePointer?,
-                    method_data: COpaquePointer?,
-                    user_data: COpaquePointer?,
-                    num_args: Int,
-                    args: CPointer<CPointerVar<godot_variant>>?
-        ): CValue<godot_variant> {
-            val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
-            val userData: CPointer<ByteVar> = user_data!!.reinterpret()
-            godot.api.godot_string_new!!(data)
-            godot.api.godot_string_parse_utf8!!(data, userData)
-
-            val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
-            godot.api.godot_variant_new_string!!(ret, data)
-            godot.api.godot_string_destroy!!(data)
-
-            return ret.pointed.readValue()
-        }
-
         fun simple_constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
             val user_data: COpaquePointer? = godot.api.godot_alloc!!("World from GDNative!".cstr.size)
             val p: CPointer<ByteVar> = user_data!!.reinterpret()

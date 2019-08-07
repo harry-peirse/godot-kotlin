@@ -51,6 +51,7 @@ data class GClass(
     fun hasSubClass(content: List<GClass>) = content.find { it.baseClass == name } != null
 
     fun buildCore(builder: TypeSpec.Builder) = builder
+            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.native", "ThreadLocal")).build())
             .addProperties(constants.map { (key, value) ->
                 PropertySpec.builder(key, Int::class)
                         .addModifiers(KModifier.PUBLIC, KModifier.CONST)
