@@ -1,9 +1,6 @@
 package game
 
 import godot.*
-import godotapi.GODOT_METHOD_RPC_MODE_DISABLED
-import godotapi.godot_string
-import godotapi.godot_variant
 import kotlinx.cinterop.*
 import platform.posix.strcpy
 
@@ -35,7 +32,7 @@ fun nativescriptInit(handle: NativescriptHandle) {
         godot.nativeScriptInit(handle)
         godot.print("nativescriptInit")
 
-        godot.registerClass(SimpleTest._GODOT_CLASS)
+        godot.registerClass(SimpleTest._GODOT_CLASS, staticCFunction(::_SimpleTest_new))
     } catch (e: Exception) {
         println(e.message)
         e.printStackTrace()
@@ -43,39 +40,50 @@ fun nativescriptInit(handle: NativescriptHandle) {
 }
 
 @CName("godot_get_data")
-fun getData(godot_object: COpaquePointer?,
-            method_data: COpaquePointer?,
-            user_data: COpaquePointer?,
-            num_args: Int,
-            args: CPointer<CPointerVar<godot_variant>>?
+fun _SimpleTest_getData(godot_object: COpaquePointer?,
+                        method_data: COpaquePointer?,
+                        user_data: COpaquePointer?,
+                        num_args: Int,
+                        args: CPointer<CPointerVar<godot_variant>>?
 ): CValue<godot_variant> {
-    val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
-    val userData: CPointer<ByteVar> = user_data!!.reinterpret()
-    godot.api.godot_string_new!!(data)
-    godot.api.godot_string_parse_utf8!!(data, userData)
+    try {
+        val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
+        val userData: CPointer<ByteVar> = user_data!!.reinterpret()
+        godot.api.godot_string_new!!(data)
+        godot.api.godot_string_parse_utf8!!(data, userData)
 
-    val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
-    godot.api.godot_variant_new_string!!(ret, data)
-    godot.api.godot_string_destroy!!(data)
+        val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+        godot.api.godot_variant_new_string!!(ret, data)
+        godot.api.godot_string_destroy!!(data)
 
-    return ret.pointed.readValue()
+        return ret.pointed.readValue()
+    } catch (e: Exception) {
+        println(e.message)
+        e.printStackTrace()
+        throw e
+    }
+}
+
+fun _SimpleTest_new(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
+    try {
+        val userData: COpaquePointer? = godot.api.godot_alloc!!("World from GDNative!".cstr.size)
+        val p: CPointer<ByteVar> = userData!!.reinterpret()
+        strcpy(p, "World from GDNative!")
+        return userData
+    } catch (e: Exception) {
+        println(e.message)
+        e.printStackTrace()
+        throw e
+    }
 }
 
 class SimpleTest : Node() {
     companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Node> {
-        fun simple_constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
-            val user_data: COpaquePointer? = godot.api.godot_alloc!!("World from GDNative!".cstr.size)
-            val p: CPointer<ByteVar> = user_data!!.reinterpret()
-            strcpy(p, "World from GDNative!")
-
-            return user_data
-        }
-
         override val type = SimpleTest::class
         override val baseType = Node::class
         override fun _new() = SimpleTest()
         override fun registerMethods() {
-            registerMethod("get_data", staticCFunction(::getData))
+            registerMethod("get_data", staticCFunction(::_SimpleTest_getData))
         }
     }
 }

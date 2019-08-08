@@ -26,3 +26,9 @@ gdnative_api_struct.gen.h
 headerFilter = gdnative/*.h arvr/*.h nativescript/*.h pluginscript/*.h *.gen.h
 
 compilerOpts = -I./godot_headers
+
+---
+typedef struct {
+  void* _owner;
+  unsigned int _typeTag;
+} _Wrapped;

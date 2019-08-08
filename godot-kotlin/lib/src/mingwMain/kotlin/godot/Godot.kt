@@ -1,9 +1,6 @@
 package godot
 
-import godotapi.*
 import kotlinx.cinterop.*
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction5
 
 const val GDNATIVE_INIT = "godot_gdnative_init"
 const val GDNATIVE_TERMINATE = "godot_gdnative_terminate"
@@ -42,12 +39,25 @@ typealias VariantType = godot_variant_type
 typealias VariantOperator = godot_variant_operator
 typealias Vector3Axis = godot_vector3_axis
 
-fun _constructor(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? = memScoped {
-    return godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.api.godot_get_class_constructor!!("".cstr.ptr))
-}
+typealias GodotFunctionCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<Variant>>?) -> CValue<Variant>>>
+typealias GodotConstructorCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?) -> COpaquePointer?>>
 
 fun _destructor(instance: COpaquePointer?, method_data: COpaquePointer?, user_data: COpaquePointer?) {
     godot.api.godot_free!!(user_data)
+}
+
+fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
+    val wrapperMemory: CPointer<_Wrapped> = godot.api.godot_alloc!!(_Wrapped.size.toInt())?.reinterpret()
+            ?: return null
+
+    wrapperMemory.pointed._owner = instance
+    wrapperMemory.pointed._typeTag = typeTag?.reinterpret<UIntVar>()?.pointed?.value!!
+
+    return wrapperMemory
+}
+
+fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
+    if (wrapper != null) godot.api.godot_free!!(wrapper)
 }
 
 class Godot {
@@ -58,15 +68,21 @@ class Godot {
     lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
     lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
-    fun print(message: Any?) {
-        memScoped {
-            val string = message.toString()
-            val data: CPointer<godot_string> = api.godot_alloc!!(string.length)!!.reinterpret()
-            api.godot_string_new!!(data)
-            api.godot_string_parse_utf8!!(data, string.cstr.ptr)
-            api.godot_print!!(data)
-            api.godot_string_destroy!!(data)
-        }
+    fun print(message: Any?) = memScoped {
+        val string = message.toString()
+        val data: CPointer<GString> = api.godot_alloc!!(string.length)!!.reinterpret()
+        api.godot_string_new!!(data)
+        api.godot_string_parse_utf8!!(data, string.cstr.ptr)
+        api.godot_print!!(data)
+        api.godot_string_destroy!!(data)
+    }
+
+    fun printWarning(description: String, function: String, file: String, line: Int) = memScoped {
+        godot.api.godot_print_warning!!(description.cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
+    }
+
+    fun printError(description: String, function: String, file: String, line: Int) = memScoped {
+        godot.api.godot_print_error!!(description.cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
     }
 
     @UseExperimental(ExperimentalUnsignedTypes::class)
@@ -127,8 +143,10 @@ class Godot {
         nativescriptHandle = handle
 
         memScoped {
-            val binding_funcs = cValue<godot_instance_binding_functions>() // TODO
-            languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(binding_funcs)
+            languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(cValue {
+                alloc_instance_binding_data = staticCFunction(::wrapperCreate)
+                free_instance_binding_data = staticCFunction(::wrapperDestroy)
+            })
 
             _registerTypes()
             _initMethodBindings()
@@ -138,10 +156,10 @@ class Godot {
     lateinit var nativescriptHandle: COpaquePointer
     var languageIndex: Int = -1
 
-    inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>) {
+    inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>, constructor: GodotConstructorCall) {
         memScoped {
             val create = cValue<godot_instance_create_func> {
-                create_func = staticCFunction(::_constructor)
+                create_func = constructor
             }
             val destroy = cValue<godot_instance_destroy_func> {
                 destroy_func = staticCFunction(::_destructor)
@@ -157,7 +175,7 @@ class Godot {
     }
 
     @UseExperimental(ExperimentalUnsignedTypes::class)
-    inline fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, functionName: String, function: CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?) -> CValue<godot_variant>>>) {
+    fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, functionName: String, function: GodotFunctionCall) {
         memScoped {
             val methodName = functionName.cstr.ptr
             val className = godotClass.getTypeName().cstr.ptr
@@ -170,45 +188,6 @@ class Godot {
 
             nativescriptApi.godot_nativescript_register_method!!(nativescriptHandle, className, methodName, attr, method)
         }
-    }
-}
-
-interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
-    val type: KClass<TYPE>
-    val baseType: KClass<BASE_TYPE>
-    fun _new(): TYPE
-    fun registerMethods()
-
-    fun getTypeName() = type.simpleName ?: throw IllegalStateException("Missing TypeName")
-    fun getTypeTag() = type.simpleName.hashCode()
-    fun getBaseTypeName() = baseType.simpleName ?: throw IllegalStateException("Missing BaseTypeName")
-    fun getBaseTypeTag() = baseType.simpleName.hashCode()
-
-    fun new(): TYPE {
-        val script = NativeScript()
-        val gdNative = GDNativeLibrary()
-        gdNative._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.gdnlib)
-        script.setLibrary(gdNative)
-
-        memScoped {
-            val typeName: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
-            godot.api.godot_string_new!!(typeName)
-            godot.api.godot_string_parse_utf8!!(typeName, getTypeName().cstr.ptr)
-            script.setClassName(typeName.pointed)
-            val instance: TYPE = _new()
-            instance._userData = godot.nativescriptApi.godot_nativescript_get_userdata!!(script.new()._owner)
-            return instance
-        }
-    }
-
-    fun getFromVariant(a: CPointer<Variant>): TYPE {
-        val instance: TYPE = _new()
-        instance._userData = godot.nativescriptApi.godot_nativescript_get_userdata!!(Object.getFromVariant(a)._owner)
-        return instance
-    }
-
-    fun registerMethod(functionName: String, function: CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<godot_variant>>?) -> CValue<godot_variant>>>) {
-        godot.registerMethod(this, functionName, function)
     }
 }
 

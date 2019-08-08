@@ -19,7 +19,7 @@ kotlin {
                 kotlinOptions {
                     freeCompilerArgs = freeCompilerArgs + "-Xuse-experimental=kotlin.Experimental"
                 }
-                val godotapi by cinterops.creating {}
+                val godot by cinterops.creating {}
             }
         }
     }

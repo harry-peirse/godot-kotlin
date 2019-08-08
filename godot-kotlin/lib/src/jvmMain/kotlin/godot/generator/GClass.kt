@@ -7,7 +7,7 @@ private val cCPointer = ClassName("kotlinx.cinterop", "CPointer")
 private val mCPointer = MemberName("kotlinx.cinterop", "CPointer")
 private val mCOpaquePointerVar = MemberName("kotlinx.cinterop", "COpaquePointerVar")
 private val mStableRef = MemberName("kotlinx.cinterop", "StableRef")
-private val cGodotMethodBind = ClassName("godotapi", "godot_method_bind")
+private val cGodotMethodBind = ClassName("godot", "godot_method_bind")
 
 data class GClass(
         val name: String,
@@ -83,7 +83,7 @@ data class GClass(
                     .addParameter("variant", cCPointer.parameterizedBy(ClassName(PACKAGE, "Variant")))
                     .addCode(CodeBlock.builder()
                             .addStatement("val instance = $name()")
-                            .addStatement("instance._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant.reinterpret())")
+                            .addStatement("instance._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant.reinterpret())!!.reinterpret()")
                             .addStatement("return instance")
                             .build())
                     .build())
@@ -119,7 +119,7 @@ data class GMethod(
             .apply {
                 add(returnTypeDeclaration(returnType))
                 add(argumentDeclarations(arguments))
-                addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _owner, args, ${returnOutParameter(returnType)})")
+                addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _wrapped?.pointed?._owner, args, ${returnOutParameter(returnType)})")
                 add(argumentCleanup(arguments))
                 add(returnStatement(returnType))
             }
@@ -288,7 +288,7 @@ fun isCoreType(value: String) = when (value) {
 fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
         isPrimitive(type) || isEnum(type) || isCoreType(type) -> addStatement("val ret = alloc<%M>()", toVar(type))
-        else -> addStatement("val ret = %M()", toVar(type))
+        else -> addStatement("val ret = alloc<_Wrapped>()")
     }
 }.build()
 
@@ -300,10 +300,8 @@ fun argumentDeclarations(arguments: List<GMethodArgument>) = CodeBlock.builder()
     }
 }.build()
 
-fun returnOutParameter(type: String) = when {
-    type == "void" -> "null"
-    isEnum(type) || isCoreType(type) -> "ret.ptr"
-    !isPrimitive(type) -> "ret._instanceBindingData"
+fun returnOutParameter(type: String) = when(type) {
+    "void" -> "null"
     else -> "ret.ptr"
 }
 
@@ -323,8 +321,9 @@ fun returnStatement(type: String) = CodeBlock.builder().apply {
         isEnum(type) -> addStatement("return ${cleanEnum(type.replace("::", "."))}.values()[ret.value.toInt()]")
         isCoreType(type) -> addStatement("return ret")
         isPointer(type) -> {
-            addStatement("ret._instanceBindingData = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._owner)")
-            addStatement("return ret")
+            addStatement("val result = $type()")
+            addStatement("result._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._owner)?.reinterpret()")
+            addStatement("return result")
         }
         isPrimitive(type) -> addStatement("return ret.value")
         else -> addStatement("return ret.pointed.value")

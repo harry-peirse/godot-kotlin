@@ -1,12 +1,8 @@
 package godot
 
-import kotlinx.cinterop.*
+import kotlinx.cinterop.CPointer
 
-@UseExperimental(ExperimentalUnsignedTypes::class)
 abstract class Wrapped {
-    var _instanceBindingData: COpaquePointer? = null
-    var _userData: COpaquePointer? = null
-    var _owner: COpaquePointer? = null
-    var _typeTag: Int = 0
+    var _wrapped: CPointer<_Wrapped>? = null
     open fun _init() {}
 }
