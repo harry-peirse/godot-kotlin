@@ -2,7 +2,8 @@ package game
 
 import godot.*
 import kotlinx.cinterop.*
-import platform.posix.strcpy
+import kotlin.math.cos
+import kotlin.math.sin
 
 @CName(GDNATIVE_INIT)
 fun gdNativeInit(options: GDNativeInitOptions) {
@@ -39,51 +40,71 @@ fun nativescriptInit(handle: NativescriptHandle) {
     }
 }
 
-@CName("godot_get_data")
-fun _SimpleTest_getData(godot_object: COpaquePointer?,
-                        method_data: COpaquePointer?,
-                        user_data: COpaquePointer?,
-                        num_args: Int,
+var timePassed: Float = 0f
+
+@CName("godot_process")
+fun _SimpleTest_process(godotObject: COpaquePointer?,
+                        methodData: COpaquePointer?,
+                        userData: COpaquePointer?,
+                        numArgs: Int,
                         args: CPointer<CPointerVar<godot_variant>>?
-): CValue<godot_variant> {
+): CValue<godot_variant> = memScoped {
     try {
-        val data: CPointer<godot_string> = godot.api.godot_alloc!!(godot_string.size.toInt())!!.reinterpret()
-        val userData: CPointer<ByteVar> = user_data!!.reinterpret()
-        godot.api.godot_string_new!!(data)
-        godot.api.godot_string_parse_utf8!!(data, userData)
+        godot.print("enter: SimpleTest_process")
 
-        val ret: CPointer<godot_variant> = godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
-        godot.api.godot_variant_new_string!!(ret, data)
-        godot.api.godot_string_destroy!!(data)
+        val delta = godot.api.godot_variant_as_real!!(args?.pointed?.value).toFloat()
+        timePassed += delta
 
-        return ret.pointed.readValue()
+        godot.print("SimpleTest_process: delta is $delta, timePassed is $timePassed")
+
+        val newPosition = godot.api.godot_alloc!!(Vector2.size.toInt())?.reinterpret<Vector2>()
+        godot.api.godot_vector2_new!!(newPosition, 10f + 10f * sin(timePassed * 2f), 10f + 10f * cos(timePassed * 1.5f))
+
+        godot.print("SimpleTest_process: newPosition is $newPosition")
+
+        setPosition(newPosition!!.pointed, userData!!.reinterpret())
+
+        godot.print("SimpleTest_process: sprite position is updated!")
+
+        godot.print("exit: SimpleTest_process")
+        return cValue()
     } catch (e: Exception) {
         println(e.message)
         e.printStackTrace()
         throw e
+    }
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+fun setPosition(position: Vector2, _wrapped: CPointer<_Wrapped>?) {
+    memScoped {
+        godot.print("setPosition: $_wrapped")
+        godot.print("setPosition: ${_wrapped?.pointed}")
+        godot.print("setPosition: ${_wrapped?.pointed?._owner}")
+        val args: CPointer<COpaquePointerVar> = allocArray(1)
+        godot.print("set args: $args")
+        val positionStableRef = StableRef.create(position)
+        godot.print("stableref: $positionStableRef")
+        args[0] = positionStableRef.asCPointer()
+        godot.print("set stableref: ${args.get(0)}")
+        godot.api.godot_method_bind_ptrcall!!(Node2D.Companion.mb.setPosition, _wrapped?.pointed?._owner, args, null)
+        godot.print("made call!")
+        positionStableRef.dispose()
+        godot.print("dispose")
     }
 }
 
 fun _SimpleTest_new(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
-    try {
-        val userData: COpaquePointer? = godot.api.godot_alloc!!("World from GDNative!".cstr.size)
-        val p: CPointer<ByteVar> = userData!!.reinterpret()
-        strcpy(p, "World from GDNative!")
-        return userData
-    } catch (e: Exception) {
-        println(e.message)
-        e.printStackTrace()
-        throw e
-    }
+    return godot.api.godot_alloc!!(_Wrapped.size.toInt())
 }
 
-class SimpleTest : Node() {
-    companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Node> {
+class SimpleTest : Sprite() {
+    companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Sprite> {
         override val type = SimpleTest::class
-        override val baseType = Node::class
+        override val baseType = Sprite::class
         override fun _new() = SimpleTest()
         override fun registerMethods() {
-            registerMethod("get_data", staticCFunction(::_SimpleTest_getData))
+            registerMethod("_process", staticCFunction(::_SimpleTest_process))
         }
     }
 }
