@@ -20,34 +20,18 @@ Note that the godot-kotlin subdirectory contains a `.gdignore` file so that Godo
 The `gdns` and `gdnlib` resource files (that are used to import the binary to godot) are therefore sitting in the root directory
 currently and should not be placed in the subdirectory or they will not be visible to godot.
 
-
-Shortcut for Windows:
-```shell script
-C:\Users\peirs\AppData\Roaming\itch\apps\stern-flowers-chibifire-com-godot-engine\godot.windows.opt.tools.64.exe --verbose
-```
-
-Code to add to NativeScript generated class for now:
-```kotlin
-    fun new(): NativeScript {
-      memScoped {
-        val instance = NativeScript()
-        instance._wrapped =
-            godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex,
-            godot.api.godot_get_class_constructor!!("NativeScript".cstr.ptr)?.reinterpret<CFunction<() ->
-            COpaquePointer?>>()!!())?.reinterpret()
-        return instance
-      }
-    }
-```
-
-
 # Current Focus
-### 17-Feb-2019
- - I want to flesh out some more use cases of NativeScript in the test project, to get a picture of how I might make it easier for others to write.
- - Look into creating a Variant object properly in Kotlin and how that would interop with c and other Kotlin based classes.
+### 09-Aug-2019
+ - Varargs supported in generated code
+ - Figuring out how to use Kotlin classes and functions instead of only binding to static functions
+ - Rewriting Core classes to be more usable 
  
-
 # Status Report
+
+### 09-Aug-2019
+ - More or less restarted from scratch but much better progress now
+ - Class generation working pretty well thanks to some inspiration from @ejektaflex!
+ - Have got a successful child of Node working
 
 ### 06-Jul-2019
  - After a long absence and an update to Kotlin Native I now have overcome the earlier problems with NativeScript and have a working call!

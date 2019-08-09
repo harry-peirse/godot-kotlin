@@ -30,11 +30,10 @@ data class GClass(
 
     fun parse(content: List<GClass>): FileSpec {
         return FileSpec.builder(PACKAGE, name)
-                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
+                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
                 .addType((TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addFunctions(methods
-                                .filter { !it.hasVarargs }
                                 .map { it.parse(this, content) })
                         .apply {
                             if (baseClass.isEmpty()) {
@@ -155,9 +154,8 @@ data class GMethod(
                     addStatement("godot.api.godot_object_destroy!!(_wrapped?.pointed?._owner)")
                 } else {
                     add(returnTypeDeclaration(returnType))
-                    add(argumentDeclarations(arguments))
+                    add(argumentDeclarations(arguments, hasVarargs))
                     addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _wrapped?.pointed?._owner, args, ${returnOutParameter(returnType)})")
-                    add(argumentCleanup(arguments))
                     add(returnStatement(returnType))
                 }
             }
@@ -187,7 +185,13 @@ data class GMethod(
                     }
                     c = bc
                 }
-                addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
+                /*if(hasVarargs) {
+                    if(arguments.size != 1) throw IllegalStateException("${this@GMethod} had varargs but arguments were $arguments")
+                    val arg = arguments.first()
+                    addParameter(if (override && arg.name.startsWith("arg")) arg.parseAsVarags(parent!!.arguments.first().name) else arg.parseAsVarags())
+                } else {*/
+                    addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
+//                }
             }
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                     .addMember("ExperimentalUnsignedTypes::class")
@@ -214,6 +218,13 @@ data class GMethodArgument(
     fun parse(overrideName: String = name): ParameterSpec {
         override = overrideName
         return ParameterSpec.builder(safeName(), typeOf(type))
+                .build()
+    }
+
+    fun parseAsVarags(overrideName: String = name): ParameterSpec {
+        override = overrideName
+        return ParameterSpec.builder(safeName(), typeOf(type))
+                .addModifiers(KModifier.VARARG)
                 .build()
     }
 }
@@ -327,30 +338,38 @@ fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
     }
 }.build()
 
-fun argumentDeclarations(arguments: List<GMethodArgument>) = CodeBlock.builder().apply {
-    addStatement("val args: %M<%M> = allocArray(${arguments.size})", mCPointer, mCOpaquePointerVar)
-    arguments.forEachIndexed { index, it ->
-        if (!isPrimitive(it.type) && !isCoreType(it.type) && !isEnum(it.type)) {
-            addStatement("args[$index] = ${it.safeName()}._wrapped")
+fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) = CodeBlock.builder().apply {
+    /*if(hasVarargs) {
+        addStatement("val args: %M<%M> = allocArray(objects.size + ${arguments.size})", mCPointer, mCOpaquePointerVar)
+        beginControlFlow("${arg.safeName()}.forEachIndexed")
+        beginControlFlow("index, it ->")
+        if (isCoreType(arg.type)) {
+            addStatement("args[index + ${arguments.size}] =it.ptr")
+        } else if (isPrimitive(arg.type) || isEnum(arg.type)) {
+            addStatement("args[index + ${arguments.size}] = alloc<%M> { value = it }.ptr", toVar(arg.type))
         } else {
-            addStatement("val ${it.safeName()}StableRef = %M.create(${it.safeName()})", mStableRef)
-            addStatement("args[$index] = ${it.safeName()}StableRef.asCPointer()")
+            addStatement("args[index + ${arguments.size}] = it._wrapped")
         }
-    }
+        endControlFlow()
+        endControlFlow()
+    } else {*/
+        addStatement("val args: %M<%M> = allocArray(${arguments.size})", mCPointer, mCOpaquePointerVar)
+        arguments.forEachIndexed { index, it ->
+            if (isCoreType(it.type)) {
+                addStatement("args[$index] = ${it.safeName()}.ptr")
+            } else if (isPrimitive(it.type) || isEnum(it.type)) {
+                addStatement("args[$index] = alloc<%M> { this.value = ${it.safeName()} }.ptr", toVar(it.type))
+            } else {
+                addStatement("args[$index] = ${it.safeName()}._wrapped")
+            }
+        }
+    //}
 }.build()
 
 fun returnOutParameter(type: String) = when (type) {
     "void" -> "null"
     else -> "ret.ptr"
 }
-
-fun argumentCleanup(arguments: List<GMethodArgument>) = CodeBlock.builder().apply {
-    arguments
-            .filter { isPrimitive(it.type) || isCoreType(it.type) || isEnum(it.type) }
-            .forEach {
-                addStatement("${it.safeName()}StableRef.dispose()")
-            }
-}.build()
 
 fun isEnum(type: String) = type.startsWith("enum.")
 
