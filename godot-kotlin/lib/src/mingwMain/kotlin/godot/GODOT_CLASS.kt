@@ -16,7 +16,7 @@ interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
 
     fun new(): TYPE {
         try {
-            val script = NativeScript()
+            val script = NativeScript.new()
             val gdNative = GDNativeLibrary()
             gdNative._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.gdnlib)?.reinterpret()
             script.setLibrary(gdNative)
@@ -28,6 +28,10 @@ interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
                 script.setClassName(typeName.pointed)
                 val instance: TYPE = _new()
                 instance._wrapped = godot.nativescriptApi.godot_nativescript_get_userdata!!(script.new()._wrapped?.pointed?._owner)?.reinterpret()
+
+                godot.print("instance wrapped: ${instance._wrapped}")
+                godot.print("instance owner: ${instance._wrapped?.pointed?._owner}")
+
                 return instance
             }
         } catch (e: Exception) {

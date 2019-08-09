@@ -180,6 +180,7 @@ class Godot {
             val methodName = functionName.cstr.ptr
             val className = godotClass.getTypeName().cstr.ptr
             val method = cValue<godot_instance_method> {
+                // free_func = godot.api.godot_free
                 method = function
             }
             val attr = cValue<godot_method_attributes> {

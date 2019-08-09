@@ -28,27 +28,25 @@ data class GClass(
             .addStatement("$name.initMethodBindings()")
             .build()
 
-//    var isObject = singleton
     fun parse(content: List<GClass>): FileSpec {
-//        isObject = singleton && !hasSubClass(content)
         return FileSpec.builder(PACKAGE, name)
-                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr", "reinterpret")
-                .addType((/*if (isObject) buildCore(TypeSpec.objectBuilder(ClassName(PACKAGE, name))) else*/ TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
+                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
+                .addType((TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
                         .addTypes(enums.map { enum -> enum.parse() })
-                        .addFunctions(methods.map { method -> method.parse(this, content) })
+                        .addFunctions(methods
+                                .filter { !it.hasVarargs }
+                                .map { it.parse(this, content) })
                         .apply {
                             if (baseClass.isEmpty()) {
                                 superclass(ClassName(PACKAGE, "Wrapped"))
                             } else {
                                 superclass(ClassName(PACKAGE, baseClass))
                             }
-                            /*if (!isObject)*/ addModifiers(KModifier.OPEN)
+                            addModifiers(KModifier.OPEN)
                         }
                         .build()
                 ).build()
     }
-
-    fun hasSubClass(content: List<GClass>) = content.find { it.baseClass == name } != null
 
     fun buildCore(builder: TypeSpec.Builder) = builder
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.native", "ThreadLocal")).build())
@@ -72,7 +70,7 @@ data class GClass(
                             .beginControlFlow("memScoped")
                             .apply {
                                 methods.forEach {
-                                    addStatement("mb.${underscoreToCamelCase(it.name)} = godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${underscoreToCamelCase(it.name)}\".cstr.ptr)")
+                                    addStatement("mb.${underscoreToCamelCase(it.name)} = godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${it.name}\".cstr.ptr)")
                                 }
                             }
                             .endControlFlow()
@@ -87,6 +85,42 @@ data class GClass(
                             .addStatement("return instance")
                             .build())
                     .build())
+            .apply {
+                if (singleton) {
+                    addProperty(PropertySpec.builder("singleton", ClassName(PACKAGE, name))
+                            .initializer("$name()")
+                            .addModifiers(KModifier.PRIVATE)
+                            .build())
+                    addFunction(FunSpec.builder("singleton")
+                            .returns(ClassName(PACKAGE, name))
+                            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
+                                    .addMember("ExperimentalUnsignedTypes::class")
+                                    .build())
+                            .addCode(CodeBlock.builder()
+                                    .beginControlFlow("if(singleton._wrapped == null)")
+                                    .beginControlFlow("memScoped")
+                                    .addStatement("singleton._wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())?.reinterpret()")
+                                    .addStatement("singleton._wrapped?.pointed?._owner = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr)")
+                                    .addStatement("singleton._wrapped?.pointed?._typeTag = $name::class.simpleName.hashCode().toUInt()")
+                                    .endControlFlow()
+                                    .endControlFlow()
+                                    .addStatement("return singleton")
+                                    .build())
+                            .build())
+                }
+                if (instanciable) addFunction(FunSpec.builder("new")
+                        .returns(ClassName(PACKAGE, name))
+                        .addCode(CodeBlock.builder()
+                                .beginControlFlow("memScoped")
+                                .addStatement("val instance = $name()")
+                                .addStatement("instance._wrapped = " +
+                                        "godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, " +
+                                        "godot.api.godot_get_class_constructor!!(\"$name\".cstr.ptr)?.reinterpret<CFunction<() -> COpaquePointer?>>()!!())?.reinterpret()")
+                                .addStatement("return instance")
+                                .endControlFlow()
+                                .build())
+                        .build())
+            }
 }
 
 /*
@@ -117,22 +151,23 @@ data class GMethod(
     fun functionBody() = CodeBlock.builder()
             .beginControlFlow("memScoped")
             .apply {
-                add(returnTypeDeclaration(returnType))
-                add(argumentDeclarations(arguments))
-                addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _wrapped?.pointed?._owner, args, ${returnOutParameter(returnType)})")
-                add(argumentCleanup(arguments))
-                add(returnStatement(returnType))
+                if (name == "free") {
+                    addStatement("godot.api.godot_object_destroy!!(_wrapped?.pointed?._owner)")
+                } else {
+                    add(returnTypeDeclaration(returnType))
+                    add(argumentDeclarations(arguments))
+                    addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _wrapped?.pointed?._owner, args, ${returnOutParameter(returnType)})")
+                    add(argumentCleanup(arguments))
+                    add(returnStatement(returnType))
+                }
             }
             .endControlFlow()
             .build()
 
     fun safeName(name: String) = if (name == "to_string") "to_g_string" else name
     fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
+            .addModifiers(KModifier.OPEN)
             .apply {
-//                if (!clazz.isObject) {
-                    addModifiers(KModifier.OPEN)
-//                }
-
                 if (name == "_init") {
                     addModifiers(KModifier.OVERRIDE)
                 }
@@ -295,20 +330,26 @@ fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
 fun argumentDeclarations(arguments: List<GMethodArgument>) = CodeBlock.builder().apply {
     addStatement("val args: %M<%M> = allocArray(${arguments.size})", mCPointer, mCOpaquePointerVar)
     arguments.forEachIndexed { index, it ->
-        addStatement("val ${it.safeName()}StableRef = %M.create(${it.safeName()})", mStableRef)
-        addStatement("args[$index] = ${it.safeName()}StableRef.asCPointer()")
+        if (!isPrimitive(it.type) && !isCoreType(it.type) && !isEnum(it.type)) {
+            addStatement("args[$index] = ${it.safeName()}._wrapped")
+        } else {
+            addStatement("val ${it.safeName()}StableRef = %M.create(${it.safeName()})", mStableRef)
+            addStatement("args[$index] = ${it.safeName()}StableRef.asCPointer()")
+        }
     }
 }.build()
 
-fun returnOutParameter(type: String) = when(type) {
+fun returnOutParameter(type: String) = when (type) {
     "void" -> "null"
     else -> "ret.ptr"
 }
 
 fun argumentCleanup(arguments: List<GMethodArgument>) = CodeBlock.builder().apply {
-    arguments.forEach {
-        addStatement("${it.safeName()}StableRef.dispose()")
-    }
+    arguments
+            .filter { isPrimitive(it.type) || isCoreType(it.type) || isEnum(it.type) }
+            .forEach {
+                addStatement("${it.safeName()}StableRef.dispose()")
+            }
 }.build()
 
 fun isEnum(type: String) = type.startsWith("enum.")
