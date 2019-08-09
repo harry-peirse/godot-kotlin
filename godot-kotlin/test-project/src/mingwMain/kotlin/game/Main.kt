@@ -42,7 +42,6 @@ fun nativescriptInit(handle: NativescriptHandle) {
 
 var timePassed: Float = 0f
 
-@CName("godot_process")
 fun _SimpleTest_process(godotObject: COpaquePointer?,
                         methodData: COpaquePointer?,
                         userData: COpaquePointer?,
