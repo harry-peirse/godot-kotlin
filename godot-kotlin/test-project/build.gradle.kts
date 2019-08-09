@@ -8,7 +8,7 @@ kotlin {
             val main by getting {
                 binaries {
                     sharedLib(listOf(DEBUG)) {
-                        linkerOpts("-O0")
+                        linkerOpts("-O0", "-v", "-stats", "-time-passes")
                     }
                 }
                 dependencies {

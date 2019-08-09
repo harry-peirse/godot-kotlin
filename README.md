@@ -21,6 +21,26 @@ The `gdns` and `gdnlib` resource files (that are used to import the binary to go
 currently and should not be placed in the subdirectory or they will not be visible to godot.
 
 
+Shortcut for Windows:
+```shell script
+C:\Users\peirs\AppData\Roaming\itch\apps\stern-flowers-chibifire-com-godot-engine\godot.windows.opt.tools.64.exe --verbose
+```
+
+Code to add to NativeScript generated class for now:
+```kotlin
+    fun new(): NativeScript {
+      memScoped {
+        val instance = NativeScript()
+        instance._wrapped =
+            godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex,
+            godot.api.godot_get_class_constructor!!("NativeScript".cstr.ptr)?.reinterpret<CFunction<() ->
+            COpaquePointer?>>()!!())?.reinterpret()
+        return instance
+      }
+    }
+```
+
+
 # Current Focus
 ### 17-Feb-2019
  - I want to flesh out some more use cases of NativeScript in the test project, to get a picture of how I might make it easier for others to write.

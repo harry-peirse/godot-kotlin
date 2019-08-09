@@ -10,6 +10,4 @@ func _ready():
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
-	var sample = preload("res://sample.gdns").new()
-	print(sample.get_data())
-#	pass
+	print($Sprite.position)

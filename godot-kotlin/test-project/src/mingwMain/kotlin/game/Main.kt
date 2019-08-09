@@ -52,14 +52,15 @@ fun _SimpleTest_process(godotObject: COpaquePointer?,
     try {
         val delta = godot.api.godot_variant_as_real!!(args?.pointed?.value).toFloat()
         timePassed += delta
-        val newPosition = godot.api.godot_alloc!!(Vector2.size.toInt())?.reinterpret<Vector2>()
-        val x = 10f * sin(timePassed * 2f)
-        val y = 10f * cos(timePassed * 1.5f)
+        val newPosition: CPointer<Vector2> = godot.api.godot_alloc!!(Vector2.size.toInt())!!.reinterpret()
+        val x: Float = 10f + 10f * sin(timePassed * 2f)
+        val y: Float = 10f + 10f * cos(timePassed * 1.5f)
         godot.api.godot_vector2_new!!(newPosition, x, y)
 
         godot.print("SimpleTest_process: delta is $delta, timePassed is $timePassed, x=$x, y=$y")
 
-        setPosition(newPosition!!.pointed, userData!!.reinterpret())
+        setPosition(newPosition.pointed, userData!!.reinterpret())
+
         return cValue()
     } catch (e: Exception) {
         println(e.message)
@@ -71,10 +72,8 @@ fun _SimpleTest_process(godotObject: COpaquePointer?,
 fun setPosition(position: Vector2, _wrapped: CPointer<_Wrapped>?) {
     memScoped {
         val args: CPointer<COpaquePointerVar> = allocArray(1)
-        val positionStableRef: StableRef<Vector2> = StableRef.create(position)
-        args[0] = positionStableRef.asCPointer()
+        args[0] = position.ptr
         godot.api.godot_method_bind_ptrcall!!(Node2D.mb.setPosition, _wrapped?.pointed?._owner, args, null)
-        positionStableRef.dispose()
     }
 }
 
