@@ -21,12 +21,15 @@ The `gdns` and `gdnlib` resource files (that are used to import the binary to go
 currently and should not be placed in the subdirectory or they will not be visible to godot.
 
 # Current Focus
-### 09-Aug-2019
- - Varargs supported in generated code
- - Figuring out how to use Kotlin classes and functions instead of only binding to static functions
- - Rewriting Core classes to be more usable 
+### 10-Aug-2019
+ - Rewriting Core classes to be more usable
+ - Look at macro-like functionality to replace companion class 
  
 # Status Report
+
+### 10-Aug-2019
+ - Varargs generated in Godot classes 
+ - Kotlin classes can be used - kind of - instead of stateless static functions everywhere!
 
 ### 09-Aug-2019
  - More or less restarted from scratch but much better progress now
