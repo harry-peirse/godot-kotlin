@@ -49,7 +49,7 @@ interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
         return instance
     }
 
-    fun registerMethod(functionName: String, function: GodotFunctionCall) {
+    fun registerMethod(functionName: String, function: Function<Variant?>) {
         godot.registerMethod(this, functionName, function)
     }
 }

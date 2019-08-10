@@ -33,41 +33,21 @@ fun nativescriptInit(handle: NativescriptHandle) {
         godot.nativeScriptInit(handle)
         godot.print("nativescriptInit")
 
-        godot.registerClass(SimpleTest._GODOT_CLASS, staticCFunction(::_SimpleTest_new))
+        godot.registerClass(SimpleTest._GODOT_CLASS)
     } catch (e: Exception) {
         println(e.message)
         e.printStackTrace()
     }
 }
 
-
-fun _SimpleTest_process(godotObject: COpaquePointer?,
-                        methodData: COpaquePointer?,
-                        userData: COpaquePointer?,
-                        numArgs: Int,
-                        args: CPointer<CPointerVar<Variant>>?
-): CValue<Variant> = memScoped {
-    val delta = godot.api.godot_variant_as_real!!(args?.pointed?.value).toFloat()
-    userData!!.asStableRef<SimpleTest>().get()._process(delta)
-    return cValue()
-}
-
-fun _SimpleTest_new(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
-    val wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())!!.reinterpret<_Wrapped>().pointed
-    wrapped._owner = instance
-    wrapped._typeTag = SimpleTest.getTypeTag()
-
-    val simpleTest = SimpleTest._new()
-    simpleTest._wrapped = wrapped.ptr
-
-    return StableRef.create(simpleTest).asCPointer()
-}
-
 class SimpleTest : Sprite() {
 
     var timePassed: Float = 0f
 
-    override fun _process(delta: Float) {
+    fun _process(arg1: Variant): Variant? {
+
+        val delta = godot.api.godot_variant_as_real!!(arg1.ptr).toFloat()
+
         timePassed += delta
         val newPosition: CPointer<Vector2> = godot.api.godot_alloc!!(Vector2.size.toInt())!!.reinterpret()
         val x: Float = 10f + 10f * sin(timePassed * 2f)
@@ -75,6 +55,8 @@ class SimpleTest : Sprite() {
         godot.api.godot_vector2_new!!(newPosition, x, y)
 
         setPosition(newPosition.pointed)
+
+        return null
     }
 
     companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Sprite> {
@@ -82,7 +64,7 @@ class SimpleTest : Sprite() {
         override val baseType = Sprite::class
         override fun _new() = SimpleTest()
         override fun registerMethods() {
-            registerMethod("_process", staticCFunction(::_SimpleTest_process))
+            registerMethod("_process", SimpleTest::_process)
         }
     }
 }

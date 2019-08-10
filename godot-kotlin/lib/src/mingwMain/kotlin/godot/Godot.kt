@@ -42,8 +42,37 @@ typealias Vector3Axis = godot_vector3_axis
 typealias GodotFunctionCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<Variant>>?) -> CValue<Variant>>>
 typealias GodotConstructorCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?) -> COpaquePointer?>>
 
+fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
+    val godotClass: GODOT_CLASS<*, *> = methodData!!.asStableRef<Any>().get() as GODOT_CLASS<*, *>
+    val wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())!!.reinterpret<_Wrapped>().pointed
+    wrapped._owner = instance
+    wrapped._typeTag = godotClass.getTypeTag()
+    val newInstance = godotClass._new()
+    newInstance._wrapped = wrapped.ptr
+    return StableRef.create(newInstance).asCPointer()
+}
+
 fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
-    userData?.asStableRef<Any>()?.dispose()
+    val godotClass: GODOT_CLASS<*, *> = methodData!!.asStableRef<Any>().get() as GODOT_CLASS<*, *>
+    val wrapped = userData?.asStableRef<Wrapped>()?.get()?._wrapped
+    godot.api.godot_free!!(wrapped)
+}
+
+fun functionWrapper(godotObject: COpaquePointer?,
+                    methodData: COpaquePointer?,
+                    userData: COpaquePointer?,
+                    numArgs: Int,
+                    args: CPointer<CPointerVar<Variant>>?
+): CValue<Variant> {
+    val entity = userData!!.asStableRef<Wrapped>().get()
+    val wrapper = methodData!!.asStableRef<WrappedFunction<Wrapped>>().get()
+    val arguments: List<Variant> = (0..numArgs).map { args!![it]!!.pointed }
+    val result: Variant? = wrapper(entity, *arguments.toTypedArray())
+    return result?.readValue() ?: cValue()
+}
+
+fun destroyFunctionWrapper(methodData: COpaquePointer?) {
+    methodData!!.asStableRef<WrappedFunction<*>>().dispose()
 }
 
 fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
@@ -156,13 +185,15 @@ class Godot {
     lateinit var nativescriptHandle: COpaquePointer
     var languageIndex: Int = -1
 
-    inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>, constructor: GodotConstructorCall) {
+    inline fun <reified T : S, reified S : Wrapped> registerClass(clazz: GODOT_CLASS<T, S>) {
         memScoped {
             val create = cValue<godot_instance_create_func> {
-                create_func = constructor
+                create_func = staticCFunction(::_constructor)
+                method_data = StableRef.create(clazz).asCPointer()
             }
             val destroy = cValue<godot_instance_destroy_func> {
                 destroy_func = staticCFunction(::_destructor)
+                method_data = StableRef.create(clazz).asCPointer()
             }
 
             print("registering class ${clazz.getTypeName()} : ${clazz.getBaseTypeName()}, with tag ${clazz.getTypeTag()} : ${clazz.getBaseTypeTag()}")
@@ -175,13 +206,14 @@ class Godot {
     }
 
     @UseExperimental(ExperimentalUnsignedTypes::class)
-    fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, functionName: String, function: GodotFunctionCall) {
+    fun <T : Wrapped> registerMethod(godotClass: GODOT_CLASS<T, *>, functionName: String, function: Function<Variant?>) {
         memScoped {
             val methodName = functionName.cstr.ptr
             val className = godotClass.getTypeName().cstr.ptr
             val method = cValue<godot_instance_method> {
-                // free_func = godot.api.godot_free
-                method = function
+                method_data = StableRef.create(WrappedFunction(godotClass.type, function)).asCPointer()
+                free_func = staticCFunction(::destroyFunctionWrapper)
+                method = staticCFunction(::functionWrapper)
             }
             val attr = cValue<godot_method_attributes> {
                 rpc_type = GODOT_METHOD_RPC_MODE_DISABLED
