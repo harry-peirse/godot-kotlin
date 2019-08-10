@@ -21,7 +21,7 @@ data class GClass(
         val enums: List<GEnum>
 ) {
     fun parseRegisterCall() = CodeBlock.builder()
-            .addStatement("godot.tagDB.registerGlobalType(\"$name\", $name::class.hashCode(), ${if (baseClass.isBlank()) "0" else "$baseClass::class.hashCode()"})")
+            .addStatement("godot.tagDB.registerGlobalType(\"$name\", $name::class.hashCode().toUInt(), ${if (baseClass.isBlank()) "0u" else "$baseClass::class.hashCode().toUInt()"})")
             .build()
 
     fun parseBindingCall() = CodeBlock.builder()
