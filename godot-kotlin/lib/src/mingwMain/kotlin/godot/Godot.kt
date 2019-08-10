@@ -42,14 +42,14 @@ typealias Vector3Axis = godot_vector3_axis
 typealias GodotFunctionCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?, COpaquePointer?, Int, CPointer<CPointerVar<Variant>>?) -> CValue<Variant>>>
 typealias GodotConstructorCall = CPointer<CFunction<(COpaquePointer?, COpaquePointer?) -> COpaquePointer?>>
 
-fun _destructor(instance: COpaquePointer?, method_data: COpaquePointer?, user_data: COpaquePointer?) {
-    godot.api.godot_free!!(user_data)
+fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
+    userData?.asStableRef<Any>()?.dispose()
 }
 
 fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
+    godot.print("wrapperCreate data: $data, typeTag: $typeTag, instance: $instance")
     val wrapperMemory: CPointer<_Wrapped> = godot.api.godot_alloc!!(_Wrapped.size.toInt())?.reinterpret()
             ?: return null
-
     wrapperMemory.pointed._owner = instance
     wrapperMemory.pointed._typeTag = typeTag?.reinterpret<UIntVar>()?.pointed?.value!!
 
@@ -57,11 +57,11 @@ fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COp
 }
 
 fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
+    godot.print("wrapperDestroy data: $data, wrapper: $wrapper")
     if (wrapper != null) godot.api.godot_free!!(wrapper)
 }
 
 class Godot {
-
     val tagDB = TagDB()
     lateinit var api: godot_gdnative_core_api_struct
     lateinit var gdnlib: COpaquePointer
@@ -169,7 +169,7 @@ class Godot {
             tagDB.registerType(clazz.getTypeTag(), clazz.getBaseTypeTag())
 
             nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, clazz.getBaseTypeName().cstr.ptr, create, destroy)
-            nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, alloc<IntVar> { value = clazz.getTypeTag() }.ptr)
+            nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, alloc<UIntVar> { value = clazz.getTypeTag() }.ptr)
             clazz.registerMethods()
         }
     }

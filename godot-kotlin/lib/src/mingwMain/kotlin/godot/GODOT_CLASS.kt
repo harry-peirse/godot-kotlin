@@ -10,9 +10,11 @@ interface GODOT_CLASS<TYPE : BASE_TYPE, BASE_TYPE : Wrapped> {
     fun registerMethods()
 
     fun getTypeName() = type.simpleName ?: throw IllegalStateException("Missing TypeName")
-    fun getTypeTag() = type.simpleName.hashCode()
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    fun getTypeTag() = type.simpleName.hashCode().toUInt()
     fun getBaseTypeName() = baseType.simpleName ?: throw IllegalStateException("Missing BaseTypeName")
-    fun getBaseTypeTag() = baseType.simpleName.hashCode()
+    @UseExperimental(ExperimentalUnsignedTypes::class)
+    fun getBaseTypeTag() = baseType.simpleName.hashCode().toUInt()
 
     fun new(): TYPE {
         try {

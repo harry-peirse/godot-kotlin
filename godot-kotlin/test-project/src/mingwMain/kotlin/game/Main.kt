@@ -40,51 +40,43 @@ fun nativescriptInit(handle: NativescriptHandle) {
     }
 }
 
-var timePassed: Float = 0f
 
 fun _SimpleTest_process(godotObject: COpaquePointer?,
                         methodData: COpaquePointer?,
                         userData: COpaquePointer?,
                         numArgs: Int,
-                        args: CPointer<CPointerVar<godot_variant>>?
-): CValue<godot_variant> = memScoped {
-    try {
-        val delta = godot.api.godot_variant_as_real!!(args?.pointed?.value).toFloat()
+                        args: CPointer<CPointerVar<Variant>>?
+): CValue<Variant> = memScoped {
+    val delta = godot.api.godot_variant_as_real!!(args?.pointed?.value).toFloat()
+    userData!!.asStableRef<SimpleTest>().get()._process(delta)
+    return cValue()
+}
+
+fun _SimpleTest_new(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
+    val wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())!!.reinterpret<_Wrapped>().pointed
+    wrapped._owner = instance
+    wrapped._typeTag = SimpleTest.getTypeTag()
+
+    val simpleTest = SimpleTest._new()
+    simpleTest._wrapped = wrapped.ptr
+
+    return StableRef.create(simpleTest).asCPointer()
+}
+
+class SimpleTest : Sprite() {
+
+    var timePassed: Float = 0f
+
+    override fun _process(delta: Float) {
         timePassed += delta
         val newPosition: CPointer<Vector2> = godot.api.godot_alloc!!(Vector2.size.toInt())!!.reinterpret()
         val x: Float = 10f + 10f * sin(timePassed * 2f)
         val y: Float = 10f + 10f * cos(timePassed * 1.5f)
         godot.api.godot_vector2_new!!(newPosition, x, y)
 
-        godot.print("SimpleTest_process: delta is $delta, timePassed is $timePassed, x=$x, y=$y")
-
-        setPosition(newPosition.pointed, userData!!.reinterpret())
-
-        return cValue()
-    } catch (e: Exception) {
-        println(e.message)
-        e.printStackTrace()
-        throw e
+        setPosition(newPosition.pointed)
     }
-}
 
-fun setPosition(position: Vector2, _wrapped: CPointer<_Wrapped>?) {
-    memScoped {
-        val args: CPointer<COpaquePointerVar> = allocArray(1)
-        args[0] = position.ptr
-        godot.api.godot_method_bind_ptrcall!!(Node2D.mb.setPosition, _wrapped?.pointed?._owner, args, null)
-    }
-}
-
-fun _SimpleTest_new(instance: COpaquePointer?, method_data: COpaquePointer?): COpaquePointer? {
-    val pointer = godot.api.godot_alloc!!(_Wrapped.size.toInt())
-    val wrapped = pointer!!.reinterpret<_Wrapped>().pointed
-    wrapped._owner = instance
-    wrapped._typeTag = "SimpleTest".hashCode().toUInt()
-    return pointer
-}
-
-class SimpleTest : Sprite() {
     companion object _GODOT_CLASS : GODOT_CLASS<SimpleTest, Sprite> {
         override val type = SimpleTest::class
         override val baseType = Sprite::class
