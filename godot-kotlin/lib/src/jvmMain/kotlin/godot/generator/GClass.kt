@@ -187,7 +187,7 @@ data class GMethod(
                 }
                 addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
                 if (hasVarargs) {
-                    addParameter(ParameterSpec.builder("varArgs", ClassName(PACKAGE, "Wrapped"))
+                    addParameter(ParameterSpec.builder("variants", ClassName(PACKAGE, "Variant"))
                             .addModifiers(KModifier.VARARG)
                             .build())
                 }
@@ -331,7 +331,7 @@ fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
 }.build()
 
 fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) = CodeBlock.builder().apply {
-    val argumentsSize = if (hasVarargs) "${arguments.size} + varArgs.size" else "${arguments.size}"
+    val argumentsSize = if (hasVarargs) "${arguments.size} + variants.size" else "${arguments.size}"
     addStatement("val args: %M<%M> = allocArray(${argumentsSize})", mCPointer, mCOpaquePointerVar)
     arguments.forEachIndexed { index, it ->
         if (isCoreType(it.type)) {
@@ -343,8 +343,8 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
         }
     }
     if (hasVarargs) {
-        beginControlFlow("varArgs.forEachIndexed")
-        addStatement("index, it -> args[index] = it._wrapped")
+        beginControlFlow("variants.forEachIndexed")
+        addStatement("index, it -> args[index] = it.ptr")
         endControlFlow()
     }
 }.build()
