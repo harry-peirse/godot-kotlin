@@ -185,13 +185,12 @@ data class GMethod(
                     }
                     c = bc
                 }
-                /*if(hasVarargs) {
-                    if(arguments.size != 1) throw IllegalStateException("${this@GMethod} had varargs but arguments were $arguments")
-                    val arg = arguments.first()
-                    addParameter(if (override && arg.name.startsWith("arg")) arg.parseAsVarags(parent!!.arguments.first().name) else arg.parseAsVarags())
-                } else {*/
-                    addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
-//                }
+                addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
+                if (hasVarargs) {
+                    addParameter(ParameterSpec.builder("varArgs", ClassName(PACKAGE, "Wrapped"))
+                            .addModifiers(KModifier.VARARG)
+                            .build())
+                }
             }
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                     .addMember("ExperimentalUnsignedTypes::class")
@@ -218,13 +217,6 @@ data class GMethodArgument(
     fun parse(overrideName: String = name): ParameterSpec {
         override = overrideName
         return ParameterSpec.builder(safeName(), typeOf(type))
-                .build()
-    }
-
-    fun parseAsVarags(overrideName: String = name): ParameterSpec {
-        override = overrideName
-        return ParameterSpec.builder(safeName(), typeOf(type))
-                .addModifiers(KModifier.VARARG)
                 .build()
     }
 }
@@ -339,31 +331,22 @@ fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
 }.build()
 
 fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) = CodeBlock.builder().apply {
-    /*if(hasVarargs) {
-        addStatement("val args: %M<%M> = allocArray(objects.size + ${arguments.size})", mCPointer, mCOpaquePointerVar)
-        beginControlFlow("${arg.safeName()}.forEachIndexed")
-        beginControlFlow("index, it ->")
-        if (isCoreType(arg.type)) {
-            addStatement("args[index + ${arguments.size}] =it.ptr")
-        } else if (isPrimitive(arg.type) || isEnum(arg.type)) {
-            addStatement("args[index + ${arguments.size}] = alloc<%M> { value = it }.ptr", toVar(arg.type))
+    val argumentsSize = if (hasVarargs) "${arguments.size} + varArgs.size" else "${arguments.size}"
+    addStatement("val args: %M<%M> = allocArray(${argumentsSize})", mCPointer, mCOpaquePointerVar)
+    arguments.forEachIndexed { index, it ->
+        if (isCoreType(it.type)) {
+            addStatement("args[$index] = ${it.safeName()}.ptr")
+        } else if (isPrimitive(it.type) || isEnum(it.type)) {
+            addStatement("args[$index] = alloc<%M> { this.value = ${it.safeName()} }.ptr", toVar(it.type))
         } else {
-            addStatement("args[index + ${arguments.size}] = it._wrapped")
+            addStatement("args[$index] = ${it.safeName()}._wrapped")
         }
+    }
+    if (hasVarargs) {
+        beginControlFlow("varArgs.forEachIndexed")
+        addStatement("index, it -> args[index] = it._wrapped")
         endControlFlow()
-        endControlFlow()
-    } else {*/
-        addStatement("val args: %M<%M> = allocArray(${arguments.size})", mCPointer, mCOpaquePointerVar)
-        arguments.forEachIndexed { index, it ->
-            if (isCoreType(it.type)) {
-                addStatement("args[$index] = ${it.safeName()}.ptr")
-            } else if (isPrimitive(it.type) || isEnum(it.type)) {
-                addStatement("args[$index] = alloc<%M> { this.value = ${it.safeName()} }.ptr", toVar(it.type))
-            } else {
-                addStatement("args[$index] = ${it.safeName()}._wrapped")
-            }
-        }
-    //}
+    }
 }.build()
 
 fun returnOutParameter(type: String) = when (type) {
