@@ -8,7 +8,7 @@ class WrappedFunction(val function: Function<*>,
         val typedArgs = argumentTypes.mapIndexed { index, it -> arguments[index].cast(it) }
         return Variant.from(
                 when (typedArgs.size) {
-                    -1, 0 -> (function as Function1<Wrapped, *>).invoke(entity)
+                    0 -> (function as Function1<Wrapped, *>).invoke(entity)
                     1 -> (function as Function2<Wrapped, Any?, *>).invoke(entity, typedArgs[0])
                     2 -> (function as Function3<Wrapped, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1])
                     3 -> (function as Function4<Wrapped, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2])
