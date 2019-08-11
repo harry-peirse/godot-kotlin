@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.*
 import java.io.File
 
 const val PACKAGE = "godot"
+const val INTERNAL_PACKAGE = "godot.internal"
 
 fun createDir(dirName: String) {
     val dir = File(dirName)
@@ -26,15 +27,20 @@ fun main() {
             .create()
             .fromJson(File("godot_headers/api.json").readText(), (object : TypeToken<List<GClass>>() {}).type)
 
-    val built = content.parallelStream().map { it.parse(content) }
+    val collector = SignatureCollector()
+
+    val built = content.parallelStream().map { it.parse(content, collector) }
 
     built.forEach {
         File(genSrcDir, "${it.name}.kt").writeText(it.toString())
     }
 
-    File(genSrcDir, "__init_bindings.kt").writeText(FileSpec.builder(PACKAGE, "__init_bindings")
+    File(genSrcDir, "__ICalls.kt").writeText(collector.parse().toString())
+
+    File(genSrcDir, "__Bindings.kt").writeText(FileSpec.builder(PACKAGE, "__Bindings")
             .addImport("kotlinx.cinterop", "invoke")
             .addFunction(FunSpec.builder("_registerTypes")
+                    .addModifiers(KModifier.INTERNAL)
                     .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                             .addMember("ExperimentalUnsignedTypes::class")
                             .build())
@@ -47,6 +53,7 @@ fun main() {
                             .build())
                     .build())
             .addFunction(FunSpec.builder("_initMethodBindings")
+                    .addModifiers(KModifier.INTERNAL)
                     .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                             .addMember("ExperimentalUnsignedTypes::class")
                             .build())

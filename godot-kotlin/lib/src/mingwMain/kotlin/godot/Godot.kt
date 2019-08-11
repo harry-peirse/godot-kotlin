@@ -10,46 +10,46 @@ typealias GDNativeInitOptions = godot_gdnative_init_options
 typealias GDNativeTerminateOptions = godot_gdnative_terminate_options
 typealias NativescriptHandle = COpaquePointer
 
-typealias Array = godot_array
-typealias Basis = godot_basis
-typealias Color = godot_color
-typealias Dictionary = godot_dictionary
-typealias Error = godot_error
-typealias NodePath = godot_node_path
-typealias Plane = godot_plane
-typealias PoolByteArray = godot_pool_byte_array
-typealias PoolIntArray = godot_pool_int_array
-typealias PoolRealArray = godot_pool_real_array
-typealias PoolStringArray = godot_pool_string_array
-typealias PoolVector2Array = godot_pool_vector2_array
-typealias PoolVector3Array = godot_pool_vector3_array
-typealias PoolColorArray = godot_pool_color_array
-typealias Quat = godot_quat
-typealias Rect2 = godot_rect2
-typealias AABB = godot_aabb
-typealias RID = godot_rid
-typealias GString = godot_string
-typealias Transform = godot_transform
-typealias Transform2D = godot_transform2d
-typealias Vector3 = godot_vector3
+internal typealias GodotArray = godot_array
+internal typealias Basis = godot_basis
+internal typealias Color = godot_color
+internal typealias GodotDictionary = godot_dictionary
+internal typealias Error = godot_error
+internal typealias NodePath = godot_node_path
+internal typealias Plane = godot_plane
+internal typealias PoolByteArray = godot_pool_byte_array
+internal typealias PoolIntArray = godot_pool_int_array
+internal typealias PoolRealArray = godot_pool_real_array
+internal typealias PoolStringArray = godot_pool_string_array
+internal typealias PoolVector2Array = godot_pool_vector2_array
+internal typealias PoolVector3Array = godot_pool_vector3_array
+internal typealias PoolColorArray = godot_pool_color_array
+internal typealias Quat = godot_quat
+internal typealias Rect2 = godot_rect2
+internal typealias AABB = godot_aabb
+internal typealias RID = godot_rid
+internal typealias GodotString = godot_string
+internal typealias Transform = godot_transform
+internal typealias Transform2D = godot_transform2d
+internal typealias Vector3 = godot_vector3
 
-typealias VariantType = godot_variant_type
-typealias VariantOperator = godot_variant_operator
-typealias Vector3Axis = godot_vector3_axis
+internal typealias VariantType = godot_variant_type
+internal typealias VariantOperator = godot_variant_operator
+internal typealias Vector3Axis = godot_vector3_axis
 
-fun String.toGodotString(): CPointer<godot_string> = memScoped {
+internal fun String.toGodotString(): CPointer<godot_string> = memScoped {
     val godotString: CPointer<godot_string> = godot.alloc(godot_string.size)
     godot.api.godot_string_new!!(godotString)
     godot.api.godot_string_parse_utf8!!(godotString, this@toGodotString.cstr.ptr)
     return godotString
 }
 
-fun CValue<godot_string>.toKotlinString(): String = memScoped {
+internal fun CValue<godot_string>.toKotlinString(): String = memScoped {
     val godotCharString = godot.api.godot_string_utf8!!(this@toKotlinString.ptr)
     godot.api.godot_char_string_get_data!!(godotCharString.ptr)!!.toKStringFromUtf8()
 }
 
-fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
+internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
     val godotClass = methodData!!.asStableRef<GodotClass>().get()
     val wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())!!.reinterpret<_Wrapped>().pointed
     wrapped._owner = instance
@@ -59,13 +59,13 @@ fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaqu
     return StableRef.create(newInstance).asCPointer()
 }
 
-fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
+internal fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
     val godotClass = methodData!!.asStableRef<GodotClass>().get()
     val wrapped = userData?.asStableRef<Wrapped>()?.get()?._wrapped
     godot.api.godot_free!!(wrapped)
 }
 
-fun functionWrapper(godotObject: COpaquePointer?,
+internal fun functionWrapper(godotObject: COpaquePointer?,
                     methodData: COpaquePointer?,
                     userData: COpaquePointer?,
                     numArgs: Int,
@@ -78,11 +78,11 @@ fun functionWrapper(godotObject: COpaquePointer?,
     return result?._wrapped?.pointed?.readValue() ?: cValue()
 }
 
-fun destroyFunctionWrapper(methodData: COpaquePointer?) {
+internal fun destroyFunctionWrapper(methodData: COpaquePointer?) {
     methodData!!.asStableRef<WrappedFunction>().dispose()
 }
 
-fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
+internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
     godot.print("wrapperCreate data: $data, typeTag: $typeTag, instance: $instance")
     val wrapperMemory: CPointer<_Wrapped> = godot.api.godot_alloc!!(_Wrapped.size.toInt())?.reinterpret()
             ?: return null
@@ -92,12 +92,13 @@ fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COp
     return wrapperMemory
 }
 
-fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
+internal fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
     godot.print("wrapperDestroy data: $data, wrapper: $wrapper")
     if (wrapper != null) godot.api.godot_free!!(wrapper)
 }
 
-val tagDB = TagDB()
+internal val tagDB = TagDB()
+
 lateinit var api: godot_gdnative_core_api_struct
 lateinit var gdnlib: COpaquePointer
 lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
@@ -105,7 +106,7 @@ lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
 fun print(message: Any?) = memScoped {
     val string = message.toString()
-    val data: CPointer<GString> = api.godot_alloc!!(string.length)!!.reinterpret()
+    val data: CPointer<GodotString> = api.godot_alloc!!(string.length)!!.reinterpret()
     api.godot_string_new!!(data)
     api.godot_string_parse_utf8!!(data, string.cstr.ptr)
     api.godot_print!!(data)
@@ -188,8 +189,8 @@ fun nativeScriptInit(handle: NativescriptHandle) {
     }
 }
 
-lateinit var nativescriptHandle: COpaquePointer
-var languageIndex: Int = -1
+internal lateinit var nativescriptHandle: COpaquePointer
+internal var languageIndex: Int = -1
 
 fun registerClass(clazz: GodotClass) {
     memScoped {
@@ -235,6 +236,18 @@ inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4,
     registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class))
 }
 
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6> registerMethod(functionName: String, noinline function: Function7<T, A1, A2, A3, A4, A5, A6, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7> registerMethod(functionName: String, noinline function: Function8<T, A1, A2, A3, A4, A5, A6, A7, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8> registerMethod(functionName: String, noinline function: Function9<T, A1, A2, A3, A4, A5, A6, A7, A8,*>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class))
+}
+
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun registerMethod(className: String, functionName: String, wrappedFunction: WrappedFunction) {
     memScoped {
@@ -252,6 +265,6 @@ fun registerMethod(className: String, functionName: String, wrappedFunction: Wra
     }
 }
 
-inline fun <reified T : CStructVar> alloc(size: Long): CPointer<T> {
+internal inline fun <reified T : CStructVar> alloc(size: Long): CPointer<T> {
     return godot.api.godot_alloc!!(size.toInt())!!.reinterpret()
 }

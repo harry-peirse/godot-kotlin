@@ -19,7 +19,9 @@ kotlin {
                 kotlinOptions {
                     freeCompilerArgs = freeCompilerArgs + "-Xuse-experimental=kotlin.Experimental"
                 }
-                val godot by cinterops.creating {}
+                val godot by cinterops.creating {
+                    packageName = "godot.internal"
+                }
             }
         }
     }

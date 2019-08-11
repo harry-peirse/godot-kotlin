@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 private val cCPointer = ClassName("kotlinx.cinterop", "CPointer")
 private val mCPointer = MemberName("kotlinx.cinterop", "CPointer")
 private val mCOpaquePointerVar = MemberName("kotlinx.cinterop", "COpaquePointerVar")
-private val mStableRef = MemberName("kotlinx.cinterop", "StableRef")
 private val cGodotMethodBind = ClassName("godot", "godot_method_bind")
 
 data class GClass(
@@ -28,13 +27,16 @@ data class GClass(
             .addStatement("$name.initMethodBindings()")
             .build()
 
-    fun parse(content: List<GClass>): FileSpec {
+    fun parse(content: List<GClass>, collector: SignatureCollector): FileSpec {
         return FileSpec.builder(PACKAGE, name)
                 .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
                 .addType((TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addFunctions(methods
-                                .map { it.parse(this, content) })
+                                .map {
+                                    collector.collect(it)
+                                    it.parse(this, content)
+                                })
                         .apply {
                             if (baseClass.isEmpty()) {
                                 superclass(ClassName(PACKAGE, "Wrapped"))
@@ -58,7 +60,7 @@ data class GClass(
             .addType(TypeSpec.classBuilder("MethodBindings")
                     .addProperties(methods.map { it.parseBinding() })
                     .build())
-            .addProperty(PropertySpec.builder("mb", /*if (isObject) ClassName(PACKAGE, name, "MethodBindings") else*/ TypeVariableName("MethodBindings"))
+            .addProperty(PropertySpec.builder("mb", TypeVariableName("MethodBindings"))
                     .initializer("MethodBindings()")
                     .build())
             .addFunction(FunSpec.builder("initMethodBindings")
@@ -163,6 +165,7 @@ data class GMethod(
             .build()
 
     fun safeName(name: String) = if (name == "to_string") "to_g_string" else name
+
     fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
             .addModifiers(KModifier.OPEN)
             .apply {
@@ -247,10 +250,12 @@ fun typeOf(type: String) = when (type) {
     "float", "real" -> Float::class.asClassName()
     "int" -> Int::class.asClassName()
     "bool" -> Boolean::class.asClassName()
-    "String" -> ClassName(PACKAGE, "GString")
+    "String" -> ClassName(PACKAGE, "GodotString")
     "Vector3::Axis" -> ClassName(PACKAGE, "Vector3Axis")
     "Variant::Operator" -> ClassName(PACKAGE, "VariantOperator")
     "Variant::Type" -> ClassName(PACKAGE, "VariantType")
+    "Dictionary" -> ClassName(PACKAGE, "GodotDictionary")
+    "Array" -> ClassName(PACKAGE, "GodotArray")
     else ->
         if (type.contains("::")) ClassName(PACKAGE, type.substringBefore("::"), type.substringAfter("::"))
         else ClassName(PACKAGE, type)
@@ -288,7 +293,7 @@ fun toVar(value: String) =
                 else MemberName(PACKAGE, value)
         }
 
-fun isEnhancedCore(value: String) = when(value) {
+fun isEnhancedCore(value: String) = when (value) {
     "Variant", "Vector2" -> true
     else -> false
 }
@@ -339,7 +344,7 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
     val argumentsSize = if (hasVarargs) "${arguments.size} + variants.size" else "${arguments.size}"
     addStatement("val args: %M<%M> = allocArray(${argumentsSize})", mCPointer, mCOpaquePointerVar)
     arguments.forEachIndexed { index, it ->
-        if(isEnhancedCore(it.type)) {
+        if (isEnhancedCore(it.type)) {
             addStatement("args[$index] = ${it.safeName()}._wrapped")
         } else if (isCoreType(it.type)) {
             addStatement("args[$index] = ${it.safeName()}.ptr")
