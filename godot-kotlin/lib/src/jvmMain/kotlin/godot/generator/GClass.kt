@@ -77,10 +77,10 @@ data class GClass(
                     .build())
             .addFunction(FunSpec.builder("getFromVariant")
                     .returns(ClassName(PACKAGE, name))
-                    .addParameter("variant", cCPointer.parameterizedBy(ClassName(PACKAGE, "Variant")))
+                    .addParameter("variant", ClassName(PACKAGE, "Variant"))
                     .addCode(CodeBlock.builder()
                             .addStatement("val instance = $name()")
-                            .addStatement("instance._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant.reinterpret())!!.reinterpret()")
+                            .addStatement("instance._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant._wrapped)!!.reinterpret()")
                             .addStatement("return instance")
                             .build())
                     .build())
@@ -288,6 +288,10 @@ fun toVar(value: String) =
                 else MemberName(PACKAGE, value)
         }
 
+fun isEnhancedCore(value: String) = when(value) {
+    "Variant", "Vector2" -> true
+    else -> false
+}
 
 fun isCoreType(value: String) = when (value) {
     "Array",
@@ -325,6 +329,7 @@ fun isCoreType(value: String) = when (value) {
 
 fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
+        isEnhancedCore(type) -> addStatement("val ret = %M()", toVar(type))
         isPrimitive(type) || isEnum(type) || isCoreType(type) -> addStatement("val ret = alloc<%M>()", toVar(type))
         else -> addStatement("val ret = alloc<_Wrapped>()")
     }
@@ -334,7 +339,9 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
     val argumentsSize = if (hasVarargs) "${arguments.size} + variants.size" else "${arguments.size}"
     addStatement("val args: %M<%M> = allocArray(${argumentsSize})", mCPointer, mCOpaquePointerVar)
     arguments.forEachIndexed { index, it ->
-        if (isCoreType(it.type)) {
+        if(isEnhancedCore(it.type)) {
+            addStatement("args[$index] = ${it.safeName()}._wrapped")
+        } else if (isCoreType(it.type)) {
             addStatement("args[$index] = ${it.safeName()}.ptr")
         } else if (isPrimitive(it.type) || isEnum(it.type)) {
             addStatement("args[$index] = alloc<%M> { this.value = ${it.safeName()} }.ptr", toVar(it.type))
@@ -344,13 +351,14 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
     }
     if (hasVarargs) {
         beginControlFlow("variants.forEachIndexed")
-        addStatement("index, it -> args[index] = it.ptr")
+        addStatement("index, it -> args[index] = it._wrapped")
         endControlFlow()
     }
 }.build()
 
 fun returnOutParameter(type: String) = when (type) {
     "void" -> "null"
+    "Variant", "Vector2" -> "ret._wrapped"
     else -> "ret.ptr"
 }
 
