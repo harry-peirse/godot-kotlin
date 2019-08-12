@@ -17,6 +17,11 @@ class WrappedFunction(val function: Function<*>,
                     6 -> (function as Function7<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5])
                     7 -> (function as Function8<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6])
                     8 -> (function as Function9<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7])
+                    9 -> (function as Function10<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8])
+                    10 -> (function as Function11<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9])
+                    11 -> (function as Function12<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10])
+                    12 -> (function as Function13<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11])
+                    13 -> (function as Function14<Wrapped, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11], typedArgs[12])
                     else -> throw IllegalStateException("Unsupported number of arguments")
                 }
         )
