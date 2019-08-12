@@ -296,6 +296,7 @@ fun isPrimitive(value: String) = when (value) {
 fun toVar(value: String) =
         if (isEnum(value)) MemberName("kotlinx.cinterop", "UIntVar") else when (value) {
             "int" -> MemberName("kotlinx.cinterop", "IntVar")
+            "UInt" -> MemberName("kotlinx.cinterop", "UIntVar")
             "bool" -> MemberName("kotlinx.cinterop", "BooleanVar")
             "float", "real" -> MemberName("kotlinx.cinterop", "FloatVar")
             "String" -> MemberName(PACKAGE, "GodotString")

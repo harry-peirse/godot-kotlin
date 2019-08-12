@@ -222,6 +222,26 @@ inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4,
     registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class))
 }
 
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8, reified A9> registerMethod(functionName: String, noinline function: Function10<T, A1, A2, A3, A4, A5, A6, A7, A8, A9, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class, A9::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8, reified A9, reified A10> registerMethod(functionName: String, noinline function: Function11<T, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class, A10::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8, reified A9, reified A10, reified A11> registerMethod(functionName: String, noinline function: Function12<T, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class, A9::class, A10::class, A11::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8, reified A9, reified A10, reified A11, reified A12> registerMethod(functionName: String, noinline function: Function13<T, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class, A9::class, A10::class, A11::class, A12::class))
+}
+
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8, reified A9, reified A10, reified A11, reified A12, reified A13> registerMethod(functionName: String, noinline function: Function14<T, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, *>) {
+    registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class, A9::class, A10::class, A11::class, A12::class, A13::class))
+}
+
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun registerMethod(className: String, functionName: String, wrappedFunction: WrappedFunction) {
     memScoped {
