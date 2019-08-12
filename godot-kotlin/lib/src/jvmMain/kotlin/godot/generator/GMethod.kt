@@ -23,12 +23,12 @@ data class GMethod(
     fun functionBody(signature: Signature) = CodeBlock.builder()
             .apply {
                 if (name == "free") {
-                    addStatement("godot.api.godot_object_destroy!!(_owner)")
+                    addStatement("godot.api.godot_object_destroy!!(_variant)")
                 } else {
                     addStatement("${if (returnType != "void") "return " else ""}" +
                             "${if (returnTypeIsEnum()) "${sanitisedReturnType()}.byValue(" else ""}" +
                             "${signature.methodName()}(mb.${sanitisedName()}!!, " +
-                            "_owner!!${if (arguments.isNotEmpty()) ", " else ""}" +
+                            "_variant${if (arguments.isNotEmpty()) ", " else ""}" +
                             "${arguments.joinToString(", ") {
                                 if (it.isEnum()) "${it.sanitisedName()}.value"
                                 else it.sanitisedName()
@@ -51,7 +51,7 @@ data class GMethod(
                     var c = clazz
                     var override = false
                     var parent: GMethod? = null
-                    loop@ while (c.baseClass.isNotBlank()) {
+                    loop@ while (c.baseClass.isNotEmpty() && c.baseClass != "Variant") {
                         val bc = content.find { it.name == c.baseClass }!!
                         val m = bc.methods.find { it.name == name && it.arguments.map { it.type } == arguments.map { it.type } }
                         if (m != null) {

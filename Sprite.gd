@@ -9,4 +9,4 @@ func _process(delta: float) -> void:
 
 
 func _on_Sprite_direction_changed(position):
-	print("Changed direction at " + position)
+	print("Changed direction at " + str(position))

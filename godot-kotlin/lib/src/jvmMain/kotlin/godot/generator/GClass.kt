@@ -4,7 +4,7 @@ import com.squareup.kotlinpoet.*
 
 data class GClass(
         val name: String,
-        val baseClass: String,
+        var baseClass: String,
         val singleton: Boolean,
         val instanciable: Boolean,
         val isReference: Boolean,
@@ -24,7 +24,31 @@ data class GClass(
             .addStatement("$name.initMethodBindings()")
             .build()
 
+    fun parseGlobalConstants() = FileSpec.builder(PACKAGE, name)
+            .addType(TypeSpec.objectBuilder(name)
+                    .addAnnotation(AnnotationSpec.builder(ThreadLocal).build())
+                    .addProperties(constants.map { (key, value) ->
+                        PropertySpec.builder(key, Int)
+                                .addModifiers(KModifier.PUBLIC, KModifier.CONST)
+                                .initializer(value.toString())
+                                .build()
+                    })
+                    .build())
+            .build()
+
     fun parse(content: List<GClass>, collector: SignatureCollector): FileSpec {
+
+        if (baseClass.isNullOrEmpty()) {
+            println("Discovered root class: $name")
+            baseClass = "Variant"
+        } else {
+            println("  $name")
+        }
+
+        if (name == "GlobalConstants") {
+            return parseGlobalConstants()
+        }
+
         methodMap = HashMap()
         methods.map {
             methodMap[it.name] = it
@@ -32,7 +56,19 @@ data class GClass(
 
         return FileSpec.builder(PACKAGE, name)
                 .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
+                .apply {
+                    if (singleton) {
+                        addProperty(PropertySpec.builder("${name}_", ClassName(PACKAGE, name))
+                                .getter(FunSpec.getterBuilder()
+                                        .addStatement("return $name.singleton()")
+                                        .build())
+                                .build())
+                    }
+                }
                 .addType((TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
+                        .addAnnotation(UseExperimentalUnsignedTypes)
+                        .superclass(ClassName(PACKAGE, baseClass))
+                        .addModifiers(KModifier.OPEN)
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addProperties(properties.mapNotNull {
                             it.parse(this, content)
@@ -47,12 +83,6 @@ data class GClass(
                                         .addModifiers(KModifier.INTERNAL)
                                         .build())
                             }
-                            if (baseClass.isEmpty()) {
-                                superclass(ClassName(PACKAGE, "Wrapped"))
-                            } else {
-                                superclass(ClassName(PACKAGE, baseClass))
-                            }
-                            addModifiers(KModifier.OPEN)
                         }
                         .build()
                 ).build()
@@ -103,24 +133,15 @@ data class GClass(
                             .build())
                     addFunction(FunSpec.builder("singleton")
                             .returns(ClassName(PACKAGE, name))
-                            .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
-                                    .addMember("ExperimentalUnsignedTypes::class")
-                                    .build())
+                            .addAnnotation(UseExperimentalUnsignedTypes)
                             .addCode(CodeBlock.builder()
                                     .beginControlFlow("if(singleton._wrapped == null)")
                                     .beginControlFlow("memScoped")
-                                    .addStatement("singleton._wrapped = godot.api.godot_alloc!!(%T.size.toInt())?.reinterpret()", _Wrapped)
-                                    .addStatement("singleton._wrapped?.pointed?._owner = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr)")
-                                    .addStatement("singleton._wrapped?.pointed?._typeTag = $name::class.simpleName.hashCode().toUInt()")
+                                    .addStatement("singleton._variant = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr).reinterpret()")
                                     .endControlFlow()
                                     .endControlFlow()
                                     .addStatement("return singleton")
                                     .build())
-                            .build())
-                    addFunction(FunSpec.builder("invoke")
-                            .returns(ClassName(PACKAGE, name))
-                            .addModifiers(KModifier.OPERATOR)
-                            .addStatement("return singleton()")
                             .build())
                 }
                 if (instanciable) addFunction(FunSpec.builder("new")

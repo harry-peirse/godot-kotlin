@@ -1,10 +1,7 @@
 package godot.generator
 
-import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.WildcardTypeName
-import com.squareup.kotlinpoet.asClassName
 import kotlin.Boolean
 import kotlin.Float
 import kotlin.Int
@@ -19,17 +16,21 @@ val Boolean = Boolean::class.asClassName()
 val Unit = Unit::class.asClassName()
 
 val UseExperimental = ClassName("kotlin", "UseExperimental")
+val ThreadLocal = ClassName("kotlin.native", "ThreadLocal")
 val HashMap = ClassName("kotlin.collections", "HashMap")
 val CPointed = ClassName("kotlinx.cinterop", "CPointed")
 val CPointer = ClassName("kotlinx.cinterop", "CPointer")
 val COpaquePointer = ClassName("kotlinx.cinterop", "COpaquePointer")
 val COpaquePointerVar = ClassName("kotlinx.cinterop", "COpaquePointerVar")
 val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
-val _Wrapped = ClassName(INTERNAL_PACKAGE, "_Wrapped")
-val Wrapped = ClassName(PACKAGE, "Wrapped")
+val GodotVariant = ClassName(INTERNAL_PACKAGE, "godot_variant")
+val Variant = ClassName(PACKAGE, "Variant")
 val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.producerOf(ClassName("kotlinx.cinterop", "CPointed")))
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
+val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(COpaquePointerVar.parameterizedBy(GodotVariant))
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
+
+val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 
 fun ClassName.isPrimitiveType(): Boolean = packageName == "kotlin"
 fun ClassName.isCoreType(): Boolean = (packageName == PACKAGE || packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()

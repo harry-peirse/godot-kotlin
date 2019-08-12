@@ -31,37 +31,37 @@ fun main() {
 
     val built = content.parallelStream().map { it.parse(content, collector) }
 
+    println("Writing files")
+
     built.forEach {
         File(genSrcDir, "${it.name}.kt").writeText(it.toString())
     }
 
+    println("Creating ICalls")
+
     File(genSrcDir, "__ICalls.kt").writeText(collector.parse().toString())
+
+    println("Creating Bindings")
 
     File(genSrcDir, "__Bindings.kt").writeText(FileSpec.builder(PACKAGE, "__Bindings")
             .addImport("kotlinx.cinterop", "invoke")
             .addFunction(FunSpec.builder("_registerTypes")
                     .addModifiers(KModifier.INTERNAL)
-                    .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
-                            .addMember("ExperimentalUnsignedTypes::class")
-                            .build())
+                    .addAnnotation(UseExperimentalUnsignedTypes)
                     .addCode(CodeBlock.builder()
                             .apply {
-                                content.map {
-                                    add(it.parseRegisterCall())
-                                }
+                                content.filter { it.name != "GlobalConstants" }
+                                        .map { add(it.parseRegisterCall()) }
                             }
                             .build())
                     .build())
             .addFunction(FunSpec.builder("_initMethodBindings")
                     .addModifiers(KModifier.INTERNAL)
-                    .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
-                            .addMember("ExperimentalUnsignedTypes::class")
-                            .build())
+                    .addAnnotation(UseExperimentalUnsignedTypes)
                     .addCode(CodeBlock.builder()
                             .apply {
-                                content.map {
-                                    add(it.parseBindingCall())
-                                }
+                                content.filter { it.name != "GlobalConstants" }
+                                        .map { add(it.parseBindingCall()) }
                             }
                             .build())
                     .build())

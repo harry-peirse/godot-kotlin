@@ -32,7 +32,7 @@ data class GProperty(val name: String,
                     .setter(parseSetter(setterMethod))
                     .apply {
                         var c = clazz
-                        loop@ while (c.baseClass.isNotBlank()) {
+                        loop@ while (c.baseClass.isNotBlank() && c.baseClass != "Variant") {
                             val bc = content.find { it.name == c.baseClass }!!
                             val m = bc.properties.find { it.name == name && it.type == type }
                             if (m != null) {
