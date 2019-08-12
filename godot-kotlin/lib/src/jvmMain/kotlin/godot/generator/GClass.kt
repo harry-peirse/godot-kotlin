@@ -384,8 +384,8 @@ fun isEnum(type: String) = type.startsWith("enum.")
 fun cleanEnum(name: String) =
         if (name == "enum.Error") "godot_error"
         else if (name == "enum.Vector3::Axis") "godot_vector3_axis"
-        else if (name == "enum.Vector3::Operator") "godot_vector3_operator"
-        else if (name == "enum.Vector3::Type") "godot_vector3_type"
+        else if (name == "enum.Variant::Operator") "godot_variant_operator"
+        else if (name == "enum.Variant::Type") "godot_variant_type"
         else name.substringAfter("enum.")
 
 fun returnStatement(type: String) = CodeBlock.builder().apply {
