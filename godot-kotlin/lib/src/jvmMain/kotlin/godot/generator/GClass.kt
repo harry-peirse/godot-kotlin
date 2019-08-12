@@ -161,12 +161,12 @@ data class GMethod(
                     addStatement("godot.api.godot_object_destroy!!(_owner)")
                 } else {
                     addStatement("${if (returnType != "void") "return " else ""}" +
-                            "${if(isEnum(returnType) && isCoreType(returnType)) "${cleanEnum(returnType)}.byValue(" else if(isEnum(returnType)) "${cleanEnum(returnType).replace("::", ".")}.values()[" else ""}" +
+                            "${if (isEnum(returnType) && isCoreType(returnType)) "${cleanEnum(returnType)}.byValue(" else if (isEnum(returnType)) "${cleanEnum(returnType).replace("::", ".")}.values()[" else ""}" +
                             "${signature.methodName()}(mb.${underscoreToCamelCase(name)}!!, " +
                             "_owner!!${if (arguments.isNotEmpty()) ", " else ""}" +
                             "${arguments.joinToString(", ") { it.safeName() }}" +
                             "${if (hasVarargs) ", *varargs" else ""})" +
-                            "${if(isEnum(returnType) && isCoreType(returnType)) ")" else if(isEnum(returnType)) ".toInt()]" else ""}")
+                            "${if (isEnum(returnType) && isCoreType(returnType)) ")" else if (isEnum(returnType)) ".toInt()]" else ""}")
                 }
             }
             .build()
@@ -260,9 +260,9 @@ fun typeOf(type: String) = when (type) {
     "Error" -> ClassName(INTERNAL_PACKAGE, "godot_error")
     "String" -> ClassName(PACKAGE, "GodotString")
     "PoolRealArray" -> ClassName(PACKAGE, "PoolFloatArray")
-    "Vector3::Axis" -> ClassName(PACKAGE, "Vector3Axis")
-    "Variant::Operator" -> ClassName(PACKAGE, "VariantOperator")
-    "Variant::Type" -> ClassName(PACKAGE, "VariantType")
+    "Vector3::Axis" -> ClassName(INTERNAL_PACKAGE, "godot_vector3_axis")
+    "Variant::Operator" -> ClassName(INTERNAL_PACKAGE, "godot_variant_operator")
+    "Variant::Type" -> ClassName(INTERNAL_PACKAGE, "godot_variant_type")
     "Dictionary" -> ClassName(PACKAGE, "GodotDictionary")
     "Array" -> ClassName(PACKAGE, "GodotArray")
     else ->
@@ -322,7 +322,7 @@ fun isCoreType(value: String) = when (value) {
     "PoolStringArray",
     "PoolVector2Array",
     "PoolVector3Array",
-        "godot_error",
+    "godot_error",
     "PoolColorArray",
     "Quat",
     "Rect2",
@@ -379,9 +379,14 @@ fun returnOutParameter(type: String) = when (type) {
     else -> "ret.ptr"
 }
 
-fun isEnum(type: String) = type == "enum.Error" || type == "godot_error" || type.startsWith("enum.")
+fun isEnum(type: String) = type.startsWith("enum.")
 
-fun cleanEnum(name: String) = if(name == "enum.Error") "godot_error" else name.substringAfter("enum.")
+fun cleanEnum(name: String) =
+        if (name == "enum.Error") "godot_error"
+        else if (name == "enum.Vector3::Axis") "godot_vector3_axis"
+        else if (name == "enum.Vector3::Operator") "godot_vector3_operator"
+        else if (name == "enum.Vector3::Type") "godot_vector3_type"
+        else name.substringAfter("enum.")
 
 fun returnStatement(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
