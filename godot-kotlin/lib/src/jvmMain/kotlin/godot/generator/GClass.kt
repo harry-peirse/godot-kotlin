@@ -12,6 +12,7 @@ val COpaquePointer = ClassName("kotlinx.cinterop", "COpaquePointer")
 val COpaquePointerVar = ClassName("kotlinx.cinterop", "COpaquePointerVar")
 val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
 val _Wrapped = ClassName(INTERNAL_PACKAGE, "_Wrapped")
+val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.producerOf(ClassName("kotlinx.cinterop", "CPointed")))
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
 
@@ -265,6 +266,7 @@ fun typeOf(type: String) = when (type) {
     "Variant::Type" -> ClassName(INTERNAL_PACKAGE, "godot_variant_type")
     "Dictionary" -> ClassName(PACKAGE, "GodotDictionary")
     "Array" -> ClassName(PACKAGE, "GodotArray")
+    "CoreType" -> CoreType
     else ->
         if (type.contains("::")) ClassName(PACKAGE, type.substringBefore("::"), type.substringAfter("::"))
         else ClassName(PACKAGE, type)
@@ -282,12 +284,12 @@ fun sanitised(value: String) = underscoreToCamelCase(when (value) {
 })
 
 fun isPointer(value: String) = when (value) {
-    "int", "bool", "float", "real" -> false
+    "int", "bool", "float", "real", "UInt" -> false
     else -> true
 }
 
 fun isPrimitive(value: String) = when (value) {
-    "int", "bool", "float", "real" -> true
+    "int", "bool", "float", "real", "UInt" -> true
     else -> false
 }
 
@@ -299,6 +301,8 @@ fun toVar(value: String) =
             "String" -> MemberName(PACKAGE, "GodotString")
             "PoolRealArray" -> MemberName(PACKAGE, "PoolFloatArray")
             "Error" -> MemberName(INTERNAL_PACKAGE, "godot_error")
+            "Array" -> MemberName(PACKAGE, "GodotArray")
+            "Dictionary" -> MemberName(PACKAGE, "GodotDictionary")
             else -> {
                 if (value.contains("::")) MemberName(PACKAGE, value.replace("::", "."))
                 else MemberName(PACKAGE, value)
@@ -373,9 +377,9 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
     }
 }.build()
 
-fun returnOutParameter(type: String) = when (type) {
-    "void" -> "null"
-    "Variant", "Vector2" -> "ret._wrapped"
+fun returnOutParameter(type: String) = when {
+    type == "void" -> "null"
+    isCoreType(type) -> "ret._wrapped"
     else -> "ret.ptr"
 }
 

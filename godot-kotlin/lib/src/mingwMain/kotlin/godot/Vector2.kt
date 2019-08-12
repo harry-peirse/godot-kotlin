@@ -6,19 +6,10 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.invoke
 
 class Vector2 : CoreType<godot_vector2> {
-    override val _wrapped: CPointer<godot_vector2>
-
-    internal constructor (_wrapped: CPointer<godot_vector2>) {
-        this._wrapped = _wrapped
-    }
-
-    internal constructor(value: CValue<godot_vector2>) {
-        val _wrapped: CPointer<godot_vector2> = godot.alloc(godot_vector2.size)
-        this._wrapped = value.place(_wrapped)
-    }
-
+    internal constructor (_wrapped: CPointer<godot_vector2>) : super(_wrapped)
+    internal constructor(value: CValue<godot_vector2>) : super(value.place(godot.alloc(godot_vector2.size)))
     internal constructor() : this(godot.alloc(godot_vector2.size))
-
+    
     constructor(x: Float, y: Float) : this() {
         godot.api.godot_vector2_new!!(_wrapped, x, y)
     }
