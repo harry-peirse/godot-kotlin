@@ -3,8 +3,8 @@ package godot.generator
 import com.squareup.kotlinpoet.*
 
 data class Signature(
-        val returnType: String,
-        val arguments: List<String>,
+        val returnType: ClassName,
+        val arguments: List<ClassName>,
         val varargs: Boolean
 ) : Comparable<Signature> {
     fun parse(): FunSpec = FunSpec.builder(methodName())
@@ -15,44 +15,71 @@ data class Signature(
             .addParameter("methodBinding", CPointer_GodotMethodBind)
             .addParameter("owner", COpaquePointer)
             .apply {
-                if (returnType != "void") returns(typeOf(returnType))
-                arguments.forEachIndexed { index, it -> addParameter("arg$index", typeOf(it)) }
+                returns(returnType)
+                arguments.forEachIndexed { index, it -> addParameter("arg$index", it.manageCoreType()) }
                 if (varargs) addParameter("varargs", ClassName(PACKAGE, "Variant"), KModifier.VARARG)
             }
             .addCode(CodeBlock.builder()
                     .beginControlFlow("memScoped")
                     .apply {
-                        add(returnTypeDeclaration(returnType))
+                        if (!returnType.isUnit()) add(returnTypeDeclaration(returnType))
                         add(argumentDeclarations(arguments, varargs))
                         addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, owner, args, ${returnOutParameter(returnType)})")
-                        add(returnStatement(returnType))
+                        if (!returnType.isUnit()) add(returnStatement(returnType))
                     }
                     .endControlFlow()
                     .build())
             .build()
 
-    fun methodName() = "_icall__${returnType}__${arguments.joinToString("_")}"
+    fun methodName() = "_icall__${returnType.simpleName}__${arguments.joinToString("_") { it.simpleName }}"
 
     override fun compareTo(other: Signature) = methodName().compareTo(other.methodName())
-}
 
-fun argumentDeclarations(arguments: List<String>, hasVarargs: Boolean) = CodeBlock.builder().apply {
-    val argumentsSize = if (hasVarargs) "${arguments.size} + varargs.size" else "${arguments.size}"
-    addStatement("val args: %T = allocArray($argumentsSize)", CPointer_COpaquePointerVar)
-    arguments.forEachIndexed { index, it ->
-        when {
-            it == "COpaquePointer" -> addStatement("args[$index] = arg$index")
-            isCoreType(it) -> addStatement("args[$index] = arg$index._wrapped")
-            isPrimitive(it) || isEnum(it) -> addStatement("args[$index] = alloc<%M> { this.value = arg$index }.ptr", toVar(it))
-            else -> addStatement("args[$index] = arg$index._wrapped")
+    fun argumentDeclarations(arguments: List<ClassName>, hasVarargs: Boolean) = CodeBlock.builder().apply {
+        val argumentsSize = if (hasVarargs) "${arguments.size} + varargs.size" else "${arguments.size}"
+        addStatement("val args: %T = allocArray($argumentsSize)", CPointer_COpaquePointerVar)
+        arguments.forEachIndexed { index, it ->
+            when {
+                it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T> { this.value = arg$index }.ptr", it.toVarType())
+                else -> addStatement("args[$index] = arg$index._wrapped")
+            }
         }
+        if (hasVarargs) {
+            beginControlFlow("varargs.forEachIndexed")
+            addStatement("index, it -> args[index] = it._wrapped")
+            endControlFlow()
+        }
+    }.build()
+
+    fun returnTypeDeclaration(type: ClassName) = CodeBlock.builder().apply {
+        when {
+            type.simpleName.isCoreType() -> addStatement("val ret = %T()", type)
+            type.simpleName.isPrimitiveType() -> addStatement("val ret = alloc<%T>()", type.toVarType())
+            else -> addStatement("val ret = alloc<%T>()", _Wrapped)
+        }
+    }.build()
+
+    fun returnOutParameter(type: ClassName) = when {
+        type.isUnit() -> "null"
+        type.isCoreType() -> "ret._wrapped"
+        else -> "ret.ptr"
     }
-    if (hasVarargs) {
-        beginControlFlow("varargs.forEachIndexed")
-        addStatement("index, it -> args[index] = it._wrapped")
-        endControlFlow()
-    }
-}.build()
+
+    fun returnStatement(type: ClassName) = CodeBlock.builder().apply {
+        when {
+            type.isCoreEnumType() -> addStatement("return %T.byValue(ret.value)", type)
+            type.isEnumType() -> addStatement("return %T.values()[ret.value.toInt()]", type)
+            type.isCoreType() -> addStatement("return ret")
+            !type.isPrimitiveType() -> {
+                addStatement("val result = %T()", type)
+                addStatement("result._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._owner)?.reinterpret()")
+                addStatement("return result")
+            }
+            type.isPrimitiveType() -> addStatement("return ret.value")
+            else -> addStatement("return ret.pointed.value")
+        }
+    }.build()
+}
 
 class SignatureCollector {
 
@@ -65,17 +92,24 @@ class SignatureCollector {
         }
 
         val signature = Signature(
-                if (method.returnType.startsWith("enum.")) "UInt" else method.returnType,
+                (if (method.returnTypeIsEnum()) UInt else method.sanitisedReturnType().toClassName()),
                 method.arguments.map {
                     when {
-                        it.type.startsWith("enum.") -> "UInt"
-                        isGeneratedClassType(it.type) -> "Wrapped"
-                        isCoreType(it.type) -> "CoreType"
-                        else -> it.type
+                        it.isEnum() -> UInt
+                        it.sanitisedType().isGeneratedClassType() -> Wrapped
+                        it.sanitisedType().isCoreType() -> CoreType.rawType
+                        else -> it.sanitisedType().toClassName()
                     }
                 },
                 method.hasVarargs)
-        list.add(signature)
+
+        synchronized(list) {
+            list.add(signature)
+            if (signature.varargs) list.remove(signature.copy(varargs = false))
+            else if (list.contains(signature.copy(varargs = true))) list.remove(signature)
+            else Unit
+        }
+
         return signature
     }
 
@@ -89,8 +123,4 @@ class SignatureCollector {
                 }
             }
             .build()
-
-    private fun isGeneratedClassType(type: String): Boolean {
-        return !isCoreType(type) && !isEnum(type) && !isPrimitive(type)
-    }
 }

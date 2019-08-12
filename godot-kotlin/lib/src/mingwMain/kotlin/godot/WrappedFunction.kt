@@ -4,6 +4,8 @@ import kotlin.reflect.KClass
 
 class WrappedFunction(val function: Function<*>,
                       vararg val argumentTypes: KClass<*>) {
+
+    @Suppress("UNCHECKED_CAST")
     operator fun invoke(entity: Wrapped, vararg arguments: Variant): Variant? {
         val typedArgs = argumentTypes.mapIndexed { index, it -> arguments[index].cast(it) }
         return Variant.from(

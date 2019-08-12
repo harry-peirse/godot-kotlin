@@ -12,6 +12,11 @@ val generatedSrcDir = file("$projectDir/src/generated/kotlin")
 kotlin {
     jvm {
         withJava()
+        compilations.all {
+            kotlinOptions {
+                freeCompilerArgs = freeCompilerArgs + "-Xuse-experimental=kotlin.Experimental"
+            }
+        }
     }
     mingwX64("mingw") {
         compilations {

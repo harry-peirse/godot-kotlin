@@ -1,24 +1,23 @@
 package game
 
-import kotlin.math.cos
-import kotlin.math.sin
+import godot.GodotString
+import godot.Input
 
 class SimpleTest : godot.Sprite() {
 
-    var timePassed: Float = 0f
-
-    override fun _init() {
-        timePassed = 0f
-    }
+    var speed = 120f
 
     override fun _process(delta: Float) {
-        timePassed += delta
-
-        val x = 10 + 10 * sin(timePassed * 2)
-        val y = 10 + 10 * cos(timePassed * 1.5f)
-        val newPosition = godot.Vector2(x, y)
-
-        setPosition(newPosition)
+        val frameSpeed = delta * speed
+        val position = position.apply {
+            when {
+                Input().isActionPressed(GodotString("move_left")) -> x -= frameSpeed
+                Input().isActionPressed(GodotString("move_right")) -> x += frameSpeed
+                Input().isActionPressed(GodotString("move_up")) -> y -= frameSpeed
+                Input().isActionPressed(GodotString("move_down")) -> y += frameSpeed
+            }
+        }
+        setPosition(position)
     }
 
     fun sayHello() {
@@ -37,6 +36,7 @@ class SimpleTest : godot.Sprite() {
             godot.registerMethod("_process", SimpleTest::_process)
             godot.registerMethod("say_hello", SimpleTest::sayHello)
             godot.registerMethod("whats_my_name", SimpleTest::whatsMyName)
+            godot.registerProperty("speed", SimpleTest::speed, 120f)
         }
     }
 }

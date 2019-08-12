@@ -1,6 +1,7 @@
 package godot
 
 import godot.internal.godot_variant
+import godot.internal.godot_variant_type
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.invoke
@@ -52,19 +53,25 @@ class Variant : CoreType<godot_variant> {
         return godot.api.godot_variant_as_uint!!(_wrapped).toUInt()
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> cast(type: KClass<T>): T {
-        return when (type) {
+        val result: Any = when (type) {
             Float::class -> this.asFloat()
             String::class -> this.asString()
             Vector2::class -> this.asVector2()
             Int::class -> this.asInt()
             UInt::class -> this.asUInt()
             else -> throw UnsupportedOperationException("Could not cast Variant to $type")
-        } as T
+        }
+        return result as T
+    }
+
+    internal fun getType(): godot_variant_type {
+        return godot.api.godot_variant_get_type!!(_wrapped)
     }
 
     companion object {
-        internal fun from(value: Any?): Variant? {
+        fun from(value: Any?): Variant? {
             return when (value) {
                 is Float -> Variant(value)
                 is Double -> Variant(value.toFloat())

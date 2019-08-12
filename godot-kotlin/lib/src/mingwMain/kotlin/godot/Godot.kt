@@ -2,6 +2,7 @@ package godot
 
 import godot.internal.*
 import kotlinx.cinterop.*
+import kotlin.reflect.KMutableProperty1
 
 const val GDNATIVE_INIT = "godot_gdnative_init"
 const val GDNATIVE_TERMINATE = "godot_gdnative_terminate"
@@ -33,12 +34,13 @@ internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?
     return StableRef.create(newInstance).asCPointer()
 }
 
+@Suppress("UNUSED_PARAMETER")
 internal fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
-    val godotClass = methodData!!.asStableRef<GodotClass>().get()
     val wrapped = userData?.asStableRef<Wrapped>()?.get()?._wrapped
     godot.api.godot_free!!(wrapped)
 }
 
+@Suppress("UNUSED_PARAMETER")
 internal fun functionWrapper(godotObject: COpaquePointer?,
                              methodData: COpaquePointer?,
                              userData: COpaquePointer?,
@@ -54,6 +56,26 @@ internal fun functionWrapper(godotObject: COpaquePointer?,
 
 internal fun destroyFunctionWrapper(methodData: COpaquePointer?) {
     methodData!!.asStableRef<WrappedFunction>().dispose()
+}
+
+internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?): CValue<godot_variant> {
+    val entity = userData!!.asStableRef<Wrapped>().get()
+    val wrapper = methodData!!.asStableRef<WrappedProperty>().get()
+    return wrapper.getter(entity)?._wrapped?.pointed?.readValue() ?: cValue()
+}
+
+internal fun setterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?, value: CPointer<godot_variant>?) {
+    val entity = userData!!.asStableRef<Wrapped>().get()
+    val wrapper = methodData!!.asStableRef<WrappedProperty>().get()
+    wrapper.setter(entity, Variant(value!!))
+}
+
+internal fun destroySetterWrapper(methodData: COpaquePointer?) {
+    methodData!!.asStableRef<WrappedProperty>().dispose()
+}
+
+internal fun destroyGetterWrapper(methodData: COpaquePointer?) {
+    methodData!!.asStableRef<WrappedProperty>().dispose()
 }
 
 internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
@@ -78,13 +100,10 @@ lateinit var gdnlib: COpaquePointer
 lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
 lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
-fun print(message: Any?) = memScoped {
-    val string = message.toString()
-    val data: CPointer<godot_string> = api.godot_alloc!!(string.length)!!.reinterpret()
-    api.godot_string_new!!(data)
-    api.godot_string_parse_utf8!!(data, string.cstr.ptr)
-    api.godot_print!!(data)
-    api.godot_string_destroy!!(data)
+fun print(message: Any?) {
+    GodotString(message.toString()) {
+        api.godot_print!!(_wrapped)
+    }
 }
 
 fun printWarning(description: String, function: String, file: String, line: Int) = memScoped {
@@ -126,6 +145,7 @@ fun gdNativeInit(options: GDNativeInitOptions) {
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun gdNativeTerminate(options: GDNativeTerminateOptions) = Unit
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
@@ -140,6 +160,7 @@ fun gdnativeProfilingAddData(signature: String, time: ULong) {
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun nativescriptTerminate(handle: NativescriptHandle) {
     if (nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions != null) {
         nativescript11Api.godot_nativescript_unregister_instance_binding_data_functions!!(languageIndex)
@@ -184,6 +205,10 @@ fun registerClass(clazz: GodotClass) {
         nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, alloc<UIntVar> { value = clazz.getTypeTag() }.ptr)
         clazz.registerMethods()
     }
+}
+
+inline fun <reified T : Wrapped, reified A1 : Any> registerProperty(propertyName: String, property: KMutableProperty1<T, A1>, defaultValue: A1) {
+    registerProperty(T::class.simpleName!!, propertyName, defaultValue, WrappedProperty(property, A1::class))
 }
 
 inline fun <reified T : Wrapped> registerMethod(functionName: String, noinline function: Function1<T, *>) {
@@ -256,6 +281,34 @@ fun registerMethod(className: String, functionName: String, wrappedFunction: Wra
         }
 
         nativescriptApi.godot_nativescript_register_method!!(nativescriptHandle, className.cstr.ptr, methodName, attr, method)
+    }
+}
+
+@UseExperimental(ExperimentalUnsignedTypes::class)
+fun registerProperty(className: String, propertyName: String, defaultValue: Any?, wrappedProperty: WrappedProperty) {
+    memScoped {
+        val getter = cValue<godot_property_get_func> {
+            method_data = StableRef.create(wrappedProperty).asCPointer()
+            free_func = staticCFunction(::destroyGetterWrapper)
+            get_func = staticCFunction(::getterWrapper)
+        }
+        val setter = cValue<godot_property_set_func> {
+            method_data = StableRef.create(wrappedProperty).asCPointer()
+            free_func = staticCFunction(::destroySetterWrapper)
+            set_func = staticCFunction(::setterWrapper)
+        }
+
+        val variant = Variant.from(defaultValue)
+
+        val attr = cValue<godot_property_attributes> {
+            type = (variant?.getType() ?: godot_variant_type.GODOT_VARIANT_TYPE_OBJECT).value.toInt()
+            if(variant != null) godot.api.godot_variant_new_copy!!(default_value.ptr, variant._wrapped)
+            hint = godot_property_hint.GODOT_PROPERTY_HINT_NONE
+            rset_type = GODOT_METHOD_RPC_MODE_DISABLED
+            usage = GODOT_PROPERTY_USAGE_DEFAULT
+            godot.api.godot_string_parse_utf8!!(hint_string.ptr, "".cstr.ptr)
+        }
+        nativescriptApi.godot_nativescript_register_property!!(nativescriptHandle, className.cstr.ptr, propertyName.cstr.ptr, attr.ptr, setter, getter)
     }
 }
 
