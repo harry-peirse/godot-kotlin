@@ -14,3 +14,4 @@ position = Vector2( 77, -53 )
 texture = ExtResource( 1 )
 offset = Vector2( 100, 100 )
 script = ExtResource( 2 )
+[connection signal="direction_changed" from="Sprite" to="." method="_on_Sprite_direction_changed"]

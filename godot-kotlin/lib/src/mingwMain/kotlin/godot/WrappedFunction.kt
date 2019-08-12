@@ -3,6 +3,7 @@ package godot
 import kotlin.reflect.KClass
 
 class WrappedFunction(val function: Function<*>,
+                      val returnType: KClass<*>,
                       vararg val argumentTypes: KClass<*>) {
 
     @Suppress("UNCHECKED_CAST")
