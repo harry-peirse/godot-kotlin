@@ -1,11 +1,17 @@
 package godot
 
+import godot.internal.godot_variant
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.invoke
 import kotlin.reflect.KClass
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class Variant internal constructor(val _wrapped: CPointer<godot_variant>) {
+class Variant : CoreType<godot_variant> {
+    override val _wrapped: CPointer<godot_variant>
+
+    internal constructor(_wrapped: CPointer<godot_variant>) {
+        this._wrapped = _wrapped
+    }
 
     internal constructor() : this(godot.alloc(godot_variant.size))
 

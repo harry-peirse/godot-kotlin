@@ -1,11 +1,12 @@
 package godot
 
+import godot.internal.godot_vector2
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.invoke
 
-class Vector2 {
-    internal val _wrapped: CPointer<godot_vector2>
+class Vector2 : CoreType<godot_vector2> {
+    override val _wrapped: CPointer<godot_vector2>
 
     internal constructor (_wrapped: CPointer<godot_vector2>) {
         this._wrapped = _wrapped

@@ -3,10 +3,17 @@ package godot.generator
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 
-private val cCPointer = ClassName("kotlinx.cinterop", "CPointer")
-private val mCPointer = MemberName("kotlinx.cinterop", "CPointer")
-private val mCOpaquePointerVar = MemberName("kotlinx.cinterop", "COpaquePointerVar")
-private val cGodotMethodBind = ClassName("godot", "godot_method_bind")
+val mCPointer = MemberName("kotlinx.cinterop", "CPointer")
+val mCOpaquePointerVar = MemberName("kotlinx.cinterop", "COpaquePointerVar")
+
+val UseExperimental = ClassName("kotlin", "UseExperimental")
+val CPointer = ClassName("kotlinx.cinterop", "CPointer")
+val COpaquePointer = ClassName("kotlinx.cinterop", "COpaquePointer")
+val COpaquePointerVar = ClassName("kotlinx.cinterop", "COpaquePointerVar")
+val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
+val _Wrapped = ClassName(INTERNAL_PACKAGE, "_Wrapped")
+val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
+val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
 
 data class GClass(
         val name: String,
@@ -34,8 +41,7 @@ data class GClass(
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addFunctions(methods
                                 .map {
-                                    collector.collect(it)
-                                    it.parse(this, content)
+                                    it.parse(this, content, collector.collect(it))
                                 })
                         .apply {
                             if (baseClass.isEmpty()) {
@@ -100,7 +106,7 @@ data class GClass(
                             .addCode(CodeBlock.builder()
                                     .beginControlFlow("if(singleton._wrapped == null)")
                                     .beginControlFlow("memScoped")
-                                    .addStatement("singleton._wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())?.reinterpret()")
+                                    .addStatement("singleton._wrapped = godot.api.godot_alloc!!(%T.size.toInt())?.reinterpret()", _Wrapped)
                                     .addStatement("singleton._wrapped?.pointed?._owner = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr)")
                                     .addStatement("singleton._wrapped?.pointed?._typeTag = $name::class.simpleName.hashCode().toUInt()")
                                     .endControlFlow()
@@ -149,24 +155,25 @@ data class GMethod(
         val arguments: List<GMethodArgument>
 ) {
 
-    fun functionBody() = CodeBlock.builder()
-            .beginControlFlow("memScoped")
+    fun functionBody(signature: Signature) = CodeBlock.builder()
             .apply {
                 if (name == "free") {
-                    addStatement("godot.api.godot_object_destroy!!(_wrapped?.pointed?._owner)")
+                    addStatement("godot.api.godot_object_destroy!!(_owner)")
                 } else {
-                    add(returnTypeDeclaration(returnType))
-                    add(argumentDeclarations(arguments, hasVarargs))
-                    addStatement("godot.api.godot_method_bind_ptrcall!!(mb.${underscoreToCamelCase(name)}, _wrapped?.pointed?._owner, args, ${returnOutParameter(returnType)})")
-                    add(returnStatement(returnType))
+                    addStatement("${if (returnType != "void") "return " else ""}" +
+                            "${if(isEnum(returnType) && isCoreType(returnType)) "${cleanEnum(returnType)}.byValue(" else if(isEnum(returnType)) "${cleanEnum(returnType).replace("::", ".")}.values()[" else ""}" +
+                            "${signature.methodName()}(mb.${underscoreToCamelCase(name)}!!, " +
+                            "_owner!!${if (arguments.isNotEmpty()) ", " else ""}" +
+                            "${arguments.joinToString(", ") { it.safeName() }}" +
+                            "${if (hasVarargs) ", *varargs" else ""})" +
+                            "${if(isEnum(returnType) && isCoreType(returnType)) ")" else if(isEnum(returnType)) ".toInt()]" else ""}")
                 }
             }
-            .endControlFlow()
             .build()
 
     fun safeName(name: String) = if (name == "to_string") "to_g_string" else name
 
-    fun parse(clazz: GClass, content: List<GClass>): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
+    fun parse(clazz: GClass, content: List<GClass>, signature: Signature): FunSpec = FunSpec.builder(underscoreToCamelCase(safeName(name)))
             .addModifiers(KModifier.OPEN)
             .apply {
                 if (name == "_init") {
@@ -190,7 +197,7 @@ data class GMethod(
                 }
                 addParameters(arguments.mapIndexed { index, it -> if (override && it.name.startsWith("arg")) it.parse(parent!!.arguments[index].name) else it.parse() })
                 if (hasVarargs) {
-                    addParameter(ParameterSpec.builder("variants", ClassName(PACKAGE, "Variant"))
+                    addParameter(ParameterSpec.builder("varargs", ClassName(PACKAGE, "Variant"))
                             .addModifiers(KModifier.VARARG)
                             .build())
                 }
@@ -198,11 +205,11 @@ data class GMethod(
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
                     .addMember("ExperimentalUnsignedTypes::class")
                     .build())
-            .addCode(functionBody())
+            .addCode(functionBody(signature))
             .returns(typeOf(returnType.removePrefix("enum.")))
             .build()
 
-    fun parseBinding(): PropertySpec = PropertySpec.builder(underscoreToCamelCase(name), cCPointer.parameterizedBy(cGodotMethodBind).copy(nullable = true))
+    fun parseBinding(): PropertySpec = PropertySpec.builder(underscoreToCamelCase(name), CPointer.parameterizedBy(GodotMethodBind).copy(nullable = true))
             .mutable()
             .initializer("null")
             .build()
@@ -250,7 +257,9 @@ fun typeOf(type: String) = when (type) {
     "float", "real" -> Float::class.asClassName()
     "int" -> Int::class.asClassName()
     "bool" -> Boolean::class.asClassName()
+    "Error" -> ClassName(INTERNAL_PACKAGE, "godot_error")
     "String" -> ClassName(PACKAGE, "GodotString")
+    "PoolRealArray" -> ClassName(PACKAGE, "PoolFloatArray")
     "Vector3::Axis" -> ClassName(PACKAGE, "Vector3Axis")
     "Variant::Operator" -> ClassName(PACKAGE, "VariantOperator")
     "Variant::Type" -> ClassName(PACKAGE, "VariantType")
@@ -287,16 +296,14 @@ fun toVar(value: String) =
             "int" -> MemberName("kotlinx.cinterop", "IntVar")
             "bool" -> MemberName("kotlinx.cinterop", "BooleanVar")
             "float", "real" -> MemberName("kotlinx.cinterop", "FloatVar")
-            "String" -> MemberName(PACKAGE, "GString")
-            else ->
+            "String" -> MemberName(PACKAGE, "GodotString")
+            "PoolRealArray" -> MemberName(PACKAGE, "PoolFloatArray")
+            "Error" -> MemberName(INTERNAL_PACKAGE, "godot_error")
+            else -> {
                 if (value.contains("::")) MemberName(PACKAGE, value.replace("::", "."))
                 else MemberName(PACKAGE, value)
+            }
         }
-
-fun isEnhancedCore(value: String) = when (value) {
-    "Variant", "Vector2" -> true
-    else -> false
-}
 
 fun isCoreType(value: String) = when (value) {
     "Array",
@@ -304,19 +311,26 @@ fun isCoreType(value: String) = when (value) {
     "Color",
     "Dictionary",
     "Error",
+    "enum.Error",
     "NodePath",
+    "CoreType<*, *>",
     "Plane",
     "PoolByteArray",
     "PoolIntArray",
     "PoolRealArray",
+    "PoolFloatArray",
     "PoolStringArray",
     "PoolVector2Array",
     "PoolVector3Array",
+        "godot_error",
     "PoolColorArray",
     "Quat",
     "Rect2",
     "AABB",
     "RID",
+    "GodotString",
+    "GodotArray",
+    "GodotDictionary",
     "String",
     "Transform",
     "Transform2D",
@@ -334,20 +348,18 @@ fun isCoreType(value: String) = when (value) {
 
 fun returnTypeDeclaration(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {
-        isEnhancedCore(type) -> addStatement("val ret = %M()", toVar(type))
-        isPrimitive(type) || isEnum(type) || isCoreType(type) -> addStatement("val ret = alloc<%M>()", toVar(type))
-        else -> addStatement("val ret = alloc<_Wrapped>()")
+        isCoreType(type) -> addStatement("val ret = %M()", toVar(type))
+        isPrimitive(type) || isEnum(type) -> addStatement("val ret = alloc<%M>()", toVar(type))
+        else -> addStatement("val ret = alloc<%T>()", _Wrapped)
     }
 }.build()
 
 fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) = CodeBlock.builder().apply {
-    val argumentsSize = if (hasVarargs) "${arguments.size} + variants.size" else "${arguments.size}"
+    val argumentsSize = if (hasVarargs) "${arguments.size} + varargs.size" else "${arguments.size}"
     addStatement("val args: %M<%M> = allocArray(${argumentsSize})", mCPointer, mCOpaquePointerVar)
     arguments.forEachIndexed { index, it ->
-        if (isEnhancedCore(it.type)) {
+        if (isCoreType(it.type)) {
             addStatement("args[$index] = ${it.safeName()}._wrapped")
-        } else if (isCoreType(it.type)) {
-            addStatement("args[$index] = ${it.safeName()}.ptr")
         } else if (isPrimitive(it.type) || isEnum(it.type)) {
             addStatement("args[$index] = alloc<%M> { this.value = ${it.safeName()} }.ptr", toVar(it.type))
         } else {
@@ -355,7 +367,7 @@ fun argumentDeclarations(arguments: List<GMethodArgument>, hasVarargs: Boolean) 
         }
     }
     if (hasVarargs) {
-        beginControlFlow("variants.forEachIndexed")
+        beginControlFlow("varargs.forEachIndexed")
         addStatement("index, it -> args[index] = it._wrapped")
         endControlFlow()
     }
@@ -367,9 +379,9 @@ fun returnOutParameter(type: String) = when (type) {
     else -> "ret.ptr"
 }
 
-fun isEnum(type: String) = type.startsWith("enum.")
+fun isEnum(type: String) = type == "enum.Error" || type == "godot_error" || type.startsWith("enum.")
 
-fun cleanEnum(name: String) = name.substringAfter("enum.")
+fun cleanEnum(name: String) = if(name == "enum.Error") "godot_error" else name.substringAfter("enum.")
 
 fun returnStatement(type: String) = CodeBlock.builder().apply {
     if (type != "void") when {

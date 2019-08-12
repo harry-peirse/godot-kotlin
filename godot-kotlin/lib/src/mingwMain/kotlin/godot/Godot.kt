@@ -1,5 +1,6 @@
 package godot
 
+import godot.internal.*
 import kotlinx.cinterop.*
 
 const val GDNATIVE_INIT = "godot_gdnative_init"
@@ -9,33 +10,6 @@ const val NATIVESCRIPT_INIT = "godot_nativescript_init"
 typealias GDNativeInitOptions = godot_gdnative_init_options
 typealias GDNativeTerminateOptions = godot_gdnative_terminate_options
 typealias NativescriptHandle = COpaquePointer
-
-internal typealias GodotArray = godot_array
-internal typealias Basis = godot_basis
-internal typealias Color = godot_color
-internal typealias GodotDictionary = godot_dictionary
-internal typealias Error = godot_error
-internal typealias NodePath = godot_node_path
-internal typealias Plane = godot_plane
-internal typealias PoolByteArray = godot_pool_byte_array
-internal typealias PoolIntArray = godot_pool_int_array
-internal typealias PoolRealArray = godot_pool_real_array
-internal typealias PoolStringArray = godot_pool_string_array
-internal typealias PoolVector2Array = godot_pool_vector2_array
-internal typealias PoolVector3Array = godot_pool_vector3_array
-internal typealias PoolColorArray = godot_pool_color_array
-internal typealias Quat = godot_quat
-internal typealias Rect2 = godot_rect2
-internal typealias AABB = godot_aabb
-internal typealias RID = godot_rid
-internal typealias GodotString = godot_string
-internal typealias Transform = godot_transform
-internal typealias Transform2D = godot_transform2d
-internal typealias Vector3 = godot_vector3
-
-internal typealias VariantType = godot_variant_type
-internal typealias VariantOperator = godot_variant_operator
-internal typealias Vector3Axis = godot_vector3_axis
 
 internal fun String.toGodotString(): CPointer<godot_string> = memScoped {
     val godotString: CPointer<godot_string> = godot.alloc(godot_string.size)
@@ -66,10 +40,10 @@ internal fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?,
 }
 
 internal fun functionWrapper(godotObject: COpaquePointer?,
-                    methodData: COpaquePointer?,
-                    userData: COpaquePointer?,
-                    numArgs: Int,
-                    args: CPointer<CPointerVar<godot_variant>>?
+                             methodData: COpaquePointer?,
+                             userData: COpaquePointer?,
+                             numArgs: Int,
+                             args: CPointer<CPointerVar<godot_variant>>?
 ): CValue<godot_variant> {
     val entity = userData!!.asStableRef<Wrapped>().get()
     val wrapper = methodData!!.asStableRef<WrappedFunction>().get()
@@ -106,7 +80,7 @@ lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
 fun print(message: Any?) = memScoped {
     val string = message.toString()
-    val data: CPointer<GodotString> = api.godot_alloc!!(string.length)!!.reinterpret()
+    val data: CPointer<godot_string> = api.godot_alloc!!(string.length)!!.reinterpret()
     api.godot_string_new!!(data)
     api.godot_string_parse_utf8!!(data, string.cstr.ptr)
     api.godot_print!!(data)
@@ -244,7 +218,7 @@ inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4,
     registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class))
 }
 
-inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8> registerMethod(functionName: String, noinline function: Function9<T, A1, A2, A3, A4, A5, A6, A7, A8,*>) {
+inline fun <reified T : Wrapped, reified A1, reified A2, reified A3, reified A4, reified A5, reified A6, reified A7, reified A8> registerMethod(functionName: String, noinline function: Function9<T, A1, A2, A3, A4, A5, A6, A7, A8, *>) {
     registerMethod(T::class.simpleName!!, functionName, WrappedFunction(function, A1::class, A2::class, A3::class, A4::class, A5::class, A6::class, A7::class, A8::class))
 }
 
