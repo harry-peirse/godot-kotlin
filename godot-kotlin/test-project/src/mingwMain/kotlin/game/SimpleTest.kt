@@ -1,12 +1,9 @@
 package game
 
-import godot.GodotClass
-import godot.Sprite
-import godot.Vector2
 import kotlin.math.cos
 import kotlin.math.sin
 
-class SimpleTest : Sprite() {
+class SimpleTest : godot.Sprite() {
 
     var timePassed: Float = 0f
 
@@ -19,7 +16,7 @@ class SimpleTest : Sprite() {
 
         val x = 10 + 10 * sin(timePassed * 2)
         val y = 10 + 10 * cos(timePassed * 1.5f)
-        val newPosition = Vector2(x, y)
+        val newPosition = godot.Vector2(x, y)
 
         setPosition(newPosition)
     }
@@ -32,9 +29,9 @@ class SimpleTest : Sprite() {
         return "Bobby Brown"
     }
 
-    companion object : GodotClass {
+    companion object : godot.GodotClass {
         override val type = SimpleTest::class
-        override val baseType = Sprite::class
+        override val baseType = godot.Sprite::class
         override fun new() = SimpleTest()
         override fun registerMethods() {
             godot.registerMethod("_process", SimpleTest::_process)
