@@ -5,32 +5,32 @@ import kotlinx.cinterop.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 
-class BoundProperty(val property: KMutableProperty1<*, *>,
+class BoundProperty(val property: KMutableProperty1<out Object, *>,
                     val type: KClass<out Any>) {
 
     @Suppress("UNCHECKED_CAST")
-    fun setter(entity: BoundClass, value: Variant) {
-        (property as KMutableProperty1<BoundClass, Any>).set(entity, value.cast(type))
+    fun setter(entity: Object, value: Variant) {
+        (property as KMutableProperty1<Object, Any>).set(entity, value.cast(type))
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun getter(entity: BoundClass): Variant? {
-        return Variant.from((property as KMutableProperty1<BoundClass, Any>).get(entity))
+    fun getter(entity: Object): Variant? {
+        return Variant.from((property as KMutableProperty1<Object, Any>).get(entity))
     }
 }
 
 @Suppress("UNUSED_PARAMETER")
 internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?): CValue<godot_variant> {
-    val entity = userData!!.asStableRef<BoundClass>().get()
+    val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
-    return wrapper.getter(entity)?._wrapped?.pointed?.readValue() ?: cValue()
+    return wrapper.getter(obj)?._variant?.pointed?.readValue() ?: cValue()
 }
 
 @Suppress("UNUSED_PARAMETER")
 internal fun setterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?, value: CPointer<godot_variant>?) {
-    val entity = userData!!.asStableRef<BoundClass>().get()
+    val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
-    wrapper.setter(entity, Variant(value!!))
+    wrapper.setter(obj, Variant.create(value!!))
 }
 
 internal fun destroySetterWrapper(methodData: COpaquePointer?) {
@@ -59,8 +59,8 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
         val variant = Variant.from(defaultValue)
 
         val attr = cValue<godot_property_attributes> {
-            type = (variant?.getType() ?: godot_variant_type.GODOT_VARIANT_TYPE_OBJECT).value.toInt()
-            if (variant != null) godot.api.godot_variant_new_copy!!(default_value.ptr, variant._wrapped)
+            type = (variant?._type ?: godot_variant_type.GODOT_VARIANT_TYPE_OBJECT.value).toInt()
+            if (variant != null) godot.api.godot_variant_new_copy!!(default_value.ptr, variant._variant)
             hint = godot_property_hint.GODOT_PROPERTY_HINT_NONE
             rset_type = GODOT_METHOD_RPC_MODE_DISABLED
             usage = GODOT_PROPERTY_USAGE_DEFAULT
@@ -70,6 +70,6 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
     }
 }
 
-inline fun <reified T : BoundClass, reified A1 : Any> registerProperty(propertyName: String, property: KMutableProperty1<T, A1>, defaultValue: A1) {
+inline fun <reified T : Object, reified A1 : Any> registerProperty(propertyName: String, property: KMutableProperty1<T, A1>, defaultValue: A1) {
     registerProperty(T::class.simpleName!!, propertyName, defaultValue, BoundProperty(property, A1::class))
 }

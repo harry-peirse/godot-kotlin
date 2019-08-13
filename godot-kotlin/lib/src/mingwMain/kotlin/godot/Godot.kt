@@ -12,7 +12,7 @@ typealias GDNativeTerminateOptions = godot_gdnative_terminate_options
 typealias NativescriptHandle = COpaquePointer
 
 lateinit var api: godot_gdnative_core_api_struct
-lateinit var gdnlib: COpaquePointer
+lateinit var gdnlib: CPointer<godot_variant>
 lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
 lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
@@ -36,7 +36,7 @@ fun gdNativeInit(options: GDNativeInitOptions) {
         println("api is null!")
         throw NullPointerException("api is null!")
     }
-    gdnlib = if (options.gd_native_library != null) options.gd_native_library!! else {
+    gdnlib = if (options.gd_native_library != null) options.gd_native_library?.reinterpret()!! else {
         println("gdnlib is null!")
         throw NullPointerException("gdnlib is null!")
     }
@@ -88,7 +88,10 @@ fun nativescriptTerminate(handle: NativescriptHandle) {
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
-    return Variant.from(instance?.reinterpret<godot_variant>())?.asStableRef()?.asCPointer()
+    val _variant = instance?.reinterpret<godot_variant>()!!
+    val obj: Object = Variant.create(_variant)
+    obj._init()
+    return obj.asStableRef()?.asCPointer()
 }
 
 @Suppress("UNUSED_PARAMETER")

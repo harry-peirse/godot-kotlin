@@ -3,7 +3,10 @@ package godot.generator
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import java.io.File
 
 const val PACKAGE = "godot"
@@ -48,12 +51,6 @@ fun main() {
             .addFunction(FunSpec.builder("_registerTypes")
                     .addModifiers(KModifier.INTERNAL)
                     .addAnnotation(UseExperimentalUnsignedTypes)
-                    .addCode(CodeBlock.builder()
-                            .apply {
-                                content.filter { it.name != "GlobalConstants" }
-                                        .map { add(it.parseRegisterCall()) }
-                            }
-                            .build())
                     .build())
             .addFunction(FunSpec.builder("_initMethodBindings")
                     .addModifiers(KModifier.INTERNAL)

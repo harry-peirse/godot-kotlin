@@ -7,7 +7,7 @@ import godot.internal.godot_variant_type
 import kotlinx.cinterop.*
 import platform.posix.memset
 
-inline fun <reified T : BoundClass> registerSignal(signalName: String, vararg arguments: Pair<String, godot_variant_type>) {
+inline fun <reified T : Object> registerSignal(signalName: String, vararg arguments: Pair<String, godot_variant_type>) {
     registerSignal(T::class.simpleName!!, signalName, *arguments)
 }
 
@@ -27,7 +27,7 @@ fun registerSignal(className: String, signalName: String, vararg arguments: Pair
 
         (0 until signal.num_args).forEach { i ->
             val name: String = arguments[i].first
-            val _key: CPointer<godot_string> = name.toGodotString()
+            val _key = GodotString(name)._string
             godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, _key)
             signal.args!![i].type = arguments[i].second.value.toInt()
         }

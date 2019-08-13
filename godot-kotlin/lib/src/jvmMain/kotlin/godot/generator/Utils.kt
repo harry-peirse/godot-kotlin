@@ -26,9 +26,12 @@ val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
 val GodotVariant = ClassName(INTERNAL_PACKAGE, "godot_variant")
 val Variant = ClassName(PACKAGE, "Variant")
 val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.producerOf(ClassName("kotlinx.cinterop", "CPointed")))
+val CPointer_GodotVariant = CPointer.parameterizedBy(GodotVariant)
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
 val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(COpaquePointerVar.parameterizedBy(GodotVariant))
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
+val CFunction = ClassName("kotlinx.cinterop", "CFunction")
+val CFunction_CPointer_GodotVariant = CFunction.parameterizedBy(LambdaTypeName.get(null, emptyList(), CPointer_GodotVariant.copy(true)))
 
 val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 
@@ -38,7 +41,6 @@ fun ClassName.isCoreEnumType(): Boolean = (packageName == INTERNAL_PACKAGE) && s
 fun ClassName.isEnumType(): Boolean = (packageName == PACKAGE) && !simpleName.isCoreType() && simpleName.contains(".")
 fun ClassName.isUnit(): Boolean = this == godot.generator.Unit
 fun ClassName.toVarType(): ClassName = if (this.isPrimitiveType()) ClassName("kotlinx.cinterop", "${simpleName}Var") else this
-fun ClassName.manageCoreType(): TypeName = if (packageName == PACKAGE && simpleName == "CoreType") this.parameterizedBy(WildcardTypeName.producerOf(CPointed)) else this
 
 fun String.toCamelCase() = (if (startsWith("_")) "_" else "") + split("_").joinToString("") { it.capitalize() }.decapitalize()
 

@@ -1,15 +1,12 @@
 package godot
 
-import godot.internal._Wrapped
 import godot.internal.godot_instance_create_func
 import godot.internal.godot_instance_destroy_func
-import godot.internal.godot_string
+import godot.internal.godot_variant
 import kotlinx.cinterop.*
 import kotlin.reflect.KClass
 
-class ClassBinder {
-
-}
+class ClassBinder
 
 class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>, val producer: () -> T, val binder: ClassBinder.() -> Unit) {
     val typeName: String
@@ -17,68 +14,50 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
     val baseTypeName: String
         get() = baseType.simpleName!!
 
-    fun _new(): T {
-        try {
-            val script = NativeScript.new()
-            val gdNative = GDNativeLibrary()
-            gdNative._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, godot.gdnlib)?.reinterpret()
-            script.setLibrary(gdNative)
+    fun new(): T {
+        val script = NativeScript.new()
+        val gdNative = GDNativeLibrary.getFromVariant(godot.gdnlib)
+        script.setLibrary(gdNative)
 
-            memScoped {
-                val typeName = godot.alloc<godot_string>(godot_string.size)
-                godot.api.godot_string_new!!(typeName)
-                godot.api.godot_string_parse_utf8!!(typeName, getTypeName().cstr.ptr)
-                script.setClassName(GodotString(typeName))
-                val instance = producer()
-                instance._wrapped = godot.nativescriptApi.godot_nativescript_get_userdata!!(script.new()._owner)?.reinterpret()
-
-                return instance
-            }
-        } catch (e: Exception) {
-            println(e.message)
-            e.printStackTrace()
-            throw e
+        memScoped {
+            script.setClassName(GodotString(typeName))
+            return getFromVariant(script.new()._variant)
         }
     }
 
-    fun getFromVariant(a: Variant): BoundClass {
-        val instance = new()
-        instance._wrapped = godot.nativescriptApi.godot_nativescript_get_userdata!!(Object.getFromVariant(a)._owner)?.reinterpret()
-        return instance
+    fun getFromVariant(_variant: CPointer<godot_variant>): T {
+        return godot.nativescriptApi.godot_nativescript_get_userdata!!(_variant)?.asStableRef<Object>()?.get()!! as T
+    }
+
+    private var stableRef: StableRef<BoundClass<T, S>>? = null
+
+    fun asStableRef(): StableRef<BoundClass<T, S>>? {
+        if (stableRef == null) {
+            stableRef = StableRef.create(this)
+        }
+        return stableRef
     }
 }
 
 internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
-    val godotClass = methodData!!.asStableRef<GodotClass>().get()
-    val wrapped = godot.api.godot_alloc!!(_Wrapped.size.toInt())!!.reinterpret<_Wrapped>().pointed
-    wrapped._owner = instance
-    wrapped._typeTag = godotClass.getTypeTag()
-    val newInstance = godotClass.new()
-    newInstance._wrapped = wrapped.ptr
-    return StableRef.create(newInstance).asCPointer()
+    val _variant = instance?.reinterpret<godot_variant>()!!
+    val boundClass = methodData?.asStableRef<BoundClass<*, *>>()?.get()!!
+    val obj = Variant.create(_variant, boundClass)
+    return obj.asStableRef()?.asCPointer()
 }
 
-@Suppress("UNUSED_PARAMETER")
-internal fun _destructor(instance: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?) {
-    val wrapped = userData?.asStableRef<BoundClass>()?.get()?._wrapped
-    godot.api.godot_free!!(wrapped)
-}
-
-fun registerClass(clazz: GodotClass) {
+fun registerClass(boundClass: BoundClass<*, *>) {
     memScoped {
         val create = cValue<godot_instance_create_func> {
             create_func = staticCFunction(::_constructor)
-            method_data = StableRef.create(clazz).asCPointer()
+            method_data = boundClass.asStableRef()?.asCPointer()
         }
-        val destroy = cValue<godot_instance_destroy_func> {
-            destroy_func = staticCFunction(::_destructor)
-            method_data = StableRef.create(clazz).asCPointer()
-        }
+        val destroy = cValue<godot_instance_destroy_func>()
 
-        print("Registering class ${clazz.getTypeName()} : ${clazz.getBaseTypeName()}")
+        print("Registering class ${boundClass.typeName} : ${boundClass.baseTypeName}")
 
-        nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, clazz.getBaseTypeName().cstr.ptr, create, destroy)
-        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, clazz.getTypeName().cstr.ptr, alloc<UIntVar> { value = clazz.getTypeTag() }.ptr)
-        clazz.registerMethods()
+        nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, boundClass.typeName.cstr.ptr, boundClass.baseTypeName.cstr.ptr, create, destroy)
+//        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, alloc<UIntVar> { value = clazz.getTypeTag() }.ptr)
+        boundClass.binder(ClassBinder())
     }
 }

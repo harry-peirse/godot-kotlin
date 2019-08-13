@@ -44,10 +44,6 @@ data class GMethod(
         return FunSpec.builder(sanitisedName())
                 .addModifiers(KModifier.OPEN)
                 .apply {
-                    if (name == "_init") {
-                        addModifiers(KModifier.OVERRIDE)
-                    }
-
                     var c = clazz
                     var override = false
                     var parent: GMethod? = null

@@ -16,10 +16,6 @@ data class GClass(
 
     var methodMap: MutableMap<String, GMethod> = HashMap()
 
-    fun parseRegisterCall() = CodeBlock.builder()
-            .addStatement("godot.tagDB.registerGlobalType(\"$name\", $name::class.hashCode().toUInt(), ${if (baseClass.isBlank()) "0u" else "$baseClass::class.hashCode().toUInt()"})")
-            .build()
-
     fun parseBindingCall() = CodeBlock.builder()
             .addStatement("$name.initMethodBindings()")
             .build()
@@ -55,7 +51,7 @@ data class GClass(
         }
 
         return FileSpec.builder(PACKAGE, name)
-                .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "CFunction", "COpaquePointer")
+                .addImport("kotlinx.cinterop", "invoke", "asStableRef", "cstr", "memScoped", "reinterpret")
                 .apply {
                     if (singleton) {
                         addProperty(PropertySpec.builder("${name}_", ClassName(PACKAGE, name))
@@ -103,9 +99,7 @@ data class GClass(
                     .initializer("MethodBindings()")
                     .build())
             .addFunction(FunSpec.builder("initMethodBindings")
-                    .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
-                            .addMember("ExperimentalUnsignedTypes::class")
-                            .build())
+                    .addAnnotation(UseExperimentalUnsignedTypes)
                     .addCode(CodeBlock.builder()
                             .beginControlFlow("memScoped")
                             .apply {
@@ -118,29 +112,22 @@ data class GClass(
                     .build())
             .addFunction(FunSpec.builder("getFromVariant")
                     .returns(ClassName(PACKAGE, name))
-                    .addParameter("variant", ClassName(PACKAGE, "Variant"))
+                    .addParameter("_variant", CPointer_GodotVariant)
                     .addCode(CodeBlock.builder()
-                            .addStatement("val instance = $name()")
-                            .addStatement("instance._wrapped = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, variant._wrapped)!!.reinterpret()")
-                            .addStatement("return instance")
+                            .addStatement("val binding = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, _variant)!!")
+                            .addStatement("return binding.asStableRef<$name>().get()")
                             .build())
                     .build())
             .apply {
                 if (singleton) {
-                    addProperty(PropertySpec.builder("singleton", ClassName(PACKAGE, name))
-                            .initializer("$name()")
-                            .addModifiers(KModifier.PRIVATE)
-                            .build())
                     addFunction(FunSpec.builder("singleton")
                             .returns(ClassName(PACKAGE, name))
                             .addAnnotation(UseExperimentalUnsignedTypes)
                             .addCode(CodeBlock.builder()
-                                    .beginControlFlow("if(singleton._wrapped == null)")
                                     .beginControlFlow("memScoped")
-                                    .addStatement("singleton._variant = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr).reinterpret()")
+                                    .addStatement("val _variant = godot.api.godot_global_get_singleton!!(\"$name\".cstr.ptr)?.reinterpret<%T>()!!", GodotVariant)
+                                    .addStatement("return getFromVariant(_variant)")
                                     .endControlFlow()
-                                    .endControlFlow()
-                                    .addStatement("return singleton")
                                     .build())
                             .build())
                 }
@@ -148,11 +135,9 @@ data class GClass(
                         .returns(ClassName(PACKAGE, name))
                         .addCode(CodeBlock.builder()
                                 .beginControlFlow("memScoped")
-                                .addStatement("val instance = $name()")
-                                .addStatement("instance._wrapped = " +
-                                        "godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, " +
-                                        "godot.api.godot_get_class_constructor!!(\"$name\".cstr.ptr)?.reinterpret<CFunction<() -> COpaquePointer?>>()!!())?.reinterpret()")
-                                .addStatement("return instance")
+                                .addStatement("val constructor = godot.api.godot_get_class_constructor!!(\"$name\".cstr.ptr)?.reinterpret<%T>()!!", CFunction_CPointer_GodotVariant)
+                                .addStatement("val _variant = constructor()!!")
+                                .addStatement("return getFromVariant(_variant)")
                                 .endControlFlow()
                                 .build())
                         .build())

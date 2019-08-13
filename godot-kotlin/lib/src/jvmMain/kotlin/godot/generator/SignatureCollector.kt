@@ -13,22 +13,22 @@ data class Signature(
                     .addMember("ExperimentalUnsignedTypes::class")
                     .build())
             .addParameter("methodBinding", CPointer_GodotMethodBind)
-            .addParameter("owner", COpaquePointer)
+            .addParameter("_variant", CPointer_GodotVariant)
             .apply {
                 returns(returnType)
-                arguments.forEachIndexed { index, it -> addParameter("arg$index", it.manageCoreType()) }
-                if (varargs) addParameter("varargs", ClassName(PACKAGE, "Variant"), KModifier.VARARG)
+                arguments.forEachIndexed { index, it -> addParameter("arg$index", it) }
+                if (varargs) addParameter("varargs", Variant, KModifier.VARARG)
             }
             .addCode(CodeBlock.builder()
                     .beginControlFlow("memScoped")
                     .apply {
                         if (varargs) {
                             add(argumentDeclarations(arguments, varargs))
-                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, owner, args, varargs.size + ${arguments.size}, null))", Variant)
+                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, _variant, args, varargs.size + ${arguments.size}, null))", Variant)
                         } else {
                             if (!returnType.isUnit() && !varargs) add(returnTypeDeclaration(returnType))
                             add(argumentDeclarations(arguments, varargs))
-                            addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, owner, args, ${returnOutParameter(returnType)})")
+                            addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, _variant, args, ${returnOutParameter(returnType)})")
                             if (!returnType.isUnit()) add(returnStatement(returnType))
                         }
                     }
@@ -46,12 +46,12 @@ data class Signature(
         arguments.forEachIndexed { index, it ->
             when {
                 it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T> { this.value = arg$index }.ptr.reinterpret()", it.toVarType())
-                else -> addStatement("args[$index] = arg$index._wrapped.reinterpret()")
+                else -> addStatement("args[$index] = arg$index._variant")
             }
         }
         if (hasVarargs) {
             beginControlFlow("varargs.forEachIndexed")
-            addStatement("index, it -> args[index] = it._wrapped")
+            addStatement("index, it -> args[index] = it._variant")
             endControlFlow()
         }
     }.build()
@@ -102,7 +102,7 @@ class SignatureCollector {
                     when {
                         it.isEnum() -> UInt
                         it.sanitisedType().isGeneratedClassType() -> Variant
-                        it.sanitisedType().isCoreType() -> CoreType.rawType
+                        it.sanitisedType().isCoreType() -> Variant
                         else -> it.sanitisedType().toClassName()
                     }
                 },

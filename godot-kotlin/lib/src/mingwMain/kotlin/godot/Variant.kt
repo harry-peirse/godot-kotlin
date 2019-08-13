@@ -3,51 +3,33 @@ package godot
 import godot.internal.godot_variant
 import godot.internal.godot_variant_type
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.invoke
+import kotlinx.cinterop.memScoped
 import kotlin.reflect.KClass
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class Variant : CoreType<godot_variant> {
-    internal constructor (_variant: CPointer<godot_variant>) : super(_variant)
-    internal constructor(value: CValue<godot_variant>) : super(value.place(godot.alloc(godot_variant.size)))
-    internal constructor() : this(godot.alloc(godot_variant.size))
+open class Variant internal constructor() {
 
-    constructor(value: Float) : this() {
-        godot.api.godot_variant_new_real!!(_variant, value.toDouble())
-    }
+    internal lateinit var _variant: CPointer<godot_variant>
 
-    constructor(value: String) : this() {
-        godot.api.godot_variant_new_string!!(_variant, value.toGodotString())
-    }
-
-    constructor(value: GodotString) : this() {
-        godot.api.godot_variant_new_string!!(_variant, value._variant)
-    }
-
-    constructor(value: Vector2) : this() {
-        godot.api.godot_variant_new_vector2!!(_variant, value._variant)
-    }
-
-    constructor(value: Int) : this() {
-        godot.api.godot_variant_new_int!!(_variant, value.toLong())
-    }
-
-    constructor(value: UInt) : this() {
-        godot.api.godot_variant_new_uint!!(_variant, value.toULong())
-    }
+    val _type: UInt
+        get() = godot_variant_type.GODOT_VARIANT_TYPE_OBJECT.value
 
     fun asFloat(): Float {
         return godot.api.godot_variant_as_real!!(_variant).toFloat()
     }
 
     fun asString(): String {
-        return godot.api.godot_variant_as_string!!(_variant).toKotlinString()
+        memScoped {
+            return GodotString(godot.api.godot_variant_as_string!!(_variant).ptr).string
+        }
     }
 
     fun asVector2(): Vector2 {
-        return Vector2(godot.api.godot_variant_as_vector2!!(_variant))
+        memScoped {
+            return Vector2(godot.api.godot_variant_as_vector2!!(_variant).ptr)
+        }
     }
 
     fun asInt(): Int {
@@ -71,7 +53,7 @@ class Variant : CoreType<godot_variant> {
         return result as T
     }
 
-    internal fun getType(): godot_variant_type {
+    internal fun _getType(): godot_variant_type {
         return godot.api.godot_variant_get_type!!(_variant)
     }
 
@@ -89,25 +71,17 @@ class Variant : CoreType<godot_variant> {
     }
 
     companion object {
-        fun from(value: Any?): Variant? {
-            return when (value) {
-                is Float -> Variant(value)
-                is Double -> Variant(value.toFloat())
-                is Int -> Variant(value)
-                is Long -> Variant(value.toInt())
-                is UInt -> Variant(value)
-                is ULong -> Variant(value.toUInt())
-                is String -> Variant(value)
-                is Vector2 -> Variant(value)
-                is Unit -> null
-                else -> nil()
-            }
+
+        fun <T : Any?> from(value: T): Variant? {
+            TODO()
         }
 
-        fun nil(): Variant {
-            val variant = Variant()
-            godot.api.godot_variant_new_nil!!(variant._variant)
-            return variant
+        inline fun <reified T : Variant> create(_variant: CPointer<godot_variant>): T {
+            TODO()
+        }
+
+        fun <T : S, S : Object> create(_variant: CPointer<godot_variant>, boundClass: BoundClass<T, S>): T {
+            TODO()
         }
     }
 }
