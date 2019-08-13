@@ -37,7 +37,7 @@ data class GClass(
         if (baseClass.isNullOrEmpty()) {
             println("Discovered root class: $name")
         } else {
-            println("$name::class -> $name.getFromVariant(_raw)")
+//            println("$name::class -> $name.getFromVariant(_raw)")
         }
 
         if (name == "GlobalConstants") {
@@ -81,8 +81,11 @@ data class GClass(
                                 addProperty(PropertySpec.builder("_raw", COpaquePointer, KModifier.LATEINIT, KModifier.INTERNAL)
                                         .mutable(true)
                                         .build())
+                                addProperty(PropertySpec.builder("_stableRef", StableRef_Object, KModifier.INTERNAL)
+                                        .initializer("%T.create(this)", StableRef)
+                                        .build())
                             }
-                            if(baseClass.isNotBlank()) {
+                            if (baseClass.isNotBlank()) {
                                 superclass(ClassName(PACKAGE, baseClass))
                             }
                         }
@@ -110,7 +113,7 @@ data class GClass(
                             .beginControlFlow("memScoped")
                             .apply {
                                 methods.forEach {
-                                    addStatement("mb.${it.sanitisedName()} = godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${it.name}\".cstr.ptr)")
+                                    addStatement("mb.${it.sanitisedName} = godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${it.name}\".cstr.ptr)")
                                 }
                             }
                             .endControlFlow()

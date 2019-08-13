@@ -67,8 +67,13 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         POOL_VECTOR3_ARRAY, // 25
         POOL_COLOR_ARRAY,
 
-        VARIANT_MAX
+        VARIANT_MAX;
 
+        val value = ordinal.toUInt()
+
+        companion object {
+            fun byValue(value: UInt) = values()[value.toInt()]
+        }
     }
 
     enum class Operator {
@@ -107,8 +112,13 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
 
         //containment
         OP_IN,
-        OP_MAX
+        OP_MAX;
 
+        val value = ordinal.toUInt()
+
+        companion object {
+            fun byValue(value: UInt) = values()[value.toInt()]
+        }
     }
 
     internal constructor(_raw: CValue<godot_variant>) : this(_raw.place(alloc(godot_variant.size)))
@@ -312,6 +322,10 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
 
     fun toRID(): RID {
         return RID(api.godot_variant_as_rid!!(_raw))
+    }
+
+    fun toObject(typeTag: UInt): Object {
+        TODO()
     }
 
     inline fun <reified T : Object> toObject(): T {
@@ -1011,4 +1025,14 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     fun destroy() {
         api.godot_variant_destroy!!(_raw)
     }
+
+//    // TODO: cool receiver functions that auto destroy the variant after use
+//    companion object {
+//        internal operator fun <R: Any?> invoke(value: Any?, lambda: Variant.() -> R): R {
+//            val variant = Variant(value)
+//            val result = variant.lambda()
+//            variant.destroy()
+//            return result
+//        }
+//    }
 }

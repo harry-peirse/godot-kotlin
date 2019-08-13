@@ -14,9 +14,9 @@ data class Signature(
                     .build())
             .addParameter("methodBinding", CPointer_GodotMethodBind)
             .addParameter("_raw", COpaquePointer)
+            .returns(returnType.parameterized())
             .apply {
-                returns(returnType)
-                arguments.forEachIndexed { index, it -> addParameter("arg$index", it) }
+                arguments.forEachIndexed { index, it -> addParameter("arg$index", it.parameterized()) }
                 if (varargs) addParameter("varargs", Variant, KModifier.VARARG)
             }
             .addCode(CodeBlock.builder()
@@ -24,9 +24,9 @@ data class Signature(
                     .apply {
                         if (varargs) {
                             add(argumentDeclarations(arguments, varargs))
-                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, _raw, args, varargs.size + ${arguments.size}, null))", Variant)
+                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, _raw, args, ${arguments.size} + varargs.size, null))", Variant)
                         } else {
-                            if (!returnType.isUnit() && !varargs) add(returnTypeDeclaration(returnType))
+                            if (!returnType.isUnit()) add(returnTypeDeclaration(returnType))
                             add(argumentDeclarations(arguments, varargs))
                             addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, _raw, args, ${returnOutParameter(returnType)})")
                             if (!returnType.isUnit()) add(returnStatement(returnType))
@@ -41,11 +41,11 @@ data class Signature(
     override fun compareTo(other: Signature) = methodName().compareTo(other.methodName())
 
     private fun argumentDeclarations(arguments: List<ClassName>, hasVarargs: Boolean) = CodeBlock.builder().apply {
-        val argumentsSize = if (hasVarargs) "${arguments.size} + varargs.size" else "${arguments.size}"
+        val argumentsSize = if (hasVarargs) "(${arguments.size} + varargs.size)" else "${arguments.size}"
         addStatement("val args: %T = allocArray($argumentsSize * %T.size)", if (hasVarargs) CPointer_CPointerVar_GodotVariant else CPointer_COpaquePointerVar, GodotVariant)
         arguments.forEachIndexed { index, it ->
             when {
-                it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T> { this.value = arg$index }.ptr.reinterpret()", it.toVarType())
+                it.isPrimitiveType() -> addStatement("args[$index] = Variant(arg$index)._raw", it.toVarType())
                 else -> addStatement("args[$index] = arg$index._raw")
             }
         }
@@ -58,30 +58,23 @@ data class Signature(
 
     private fun returnTypeDeclaration(type: ClassName) = CodeBlock.builder().apply {
         when {
-            type.simpleName.isCoreType() -> addStatement("val ret = %T()", type)
-            type.simpleName.isPrimitiveType() -> addStatement("val ret = alloc<%T>()", type.toVarType())
-            else -> addStatement("val ret = alloc<%T>()", Variant)
+            type.isPrimitiveType() -> addStatement("val ret = alloc<%T>()", type.toVarType())
+            else -> addStatement("val ret = Variant()")
         }
     }.build()
 
     private fun returnOutParameter(type: ClassName) = when {
         type.isUnit() -> "null"
-        type.isCoreType() -> "ret"
-        else -> "ret.ptr"
+        type.isPrimitiveType() -> "ret.ptr"
+        else -> "ret._raw"
     }
 
     private fun returnStatement(type: ClassName) = CodeBlock.builder().apply {
         when {
             type.isCoreEnumType() -> addStatement("return %T.byValue(ret.value)", type)
             type.isEnumType() -> addStatement("return %T.values()[ret.value.toInt()]", type)
-            type.isCoreType() -> addStatement("return ret")
-            !type.isPrimitiveType() -> {
-                addStatement("val result = %T()", type)
-                addStatement("result = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._raw)?.reinterpret()")
-                addStatement("return result")
-            }
             type.isPrimitiveType() -> addStatement("return ret.value")
-            else -> addStatement("return ret.pointed.value")
+            else -> addStatement("return ret.toObject()")
         }
     }.build()
 }
@@ -97,13 +90,13 @@ class SignatureCollector {
         }
 
         val signature = Signature(
-                (if (method.returnTypeIsEnum()) UInt else method.sanitisedReturnType().toClassName()),
+                (if (method.returnTypeIsEnum) UInt else method.sanitisedReturnType.toClassName()),
                 method.arguments.map {
                     when {
-                        it.isEnum() -> UInt
-                        it.sanitisedType().isGeneratedClassType() -> Variant
-                        it.sanitisedType().isCoreType() -> Variant
-                        else -> it.sanitisedType().toClassName()
+                        it.isEnum -> UInt
+                        it.sanitisedType.isClassType() -> Object
+                        it.sanitisedType.isCoreType() -> Variant
+                        else -> it.sanitisedType.toClassName()
                     }
                 },
                 method.hasVarargs)

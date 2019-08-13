@@ -8,13 +8,12 @@ data class GMethodArgument(
         val hasDefaultValue: Boolean,
         val defaultValue: String
 ) {
-    fun sanitisedName() = name.sanitisedName()
-    fun sanitisedType() = type.sanitisedType()
-
-    fun isEnum(): Boolean = type.startsWith("enum.")
+    val sanitisedName: String get() = name.sanitisedName()
+    val sanitisedType: String get() = type.sanitisedType()
+    val isEnum: Boolean get() = type.contains(".")
 
     fun parse(): ParameterSpec {
-        return ParameterSpec.builder(sanitisedName(), sanitisedType().toClassName())
+        return ParameterSpec.builder(sanitisedName, sanitisedType.toClassName().parameterized())
                 .build()
     }
 }

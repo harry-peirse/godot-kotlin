@@ -10,12 +10,12 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
 
     @Suppress("UNCHECKED_CAST")
     fun setter(entity: Object, value: Variant) {
-        (property as KMutableProperty1<Object, Any>).set(entity, value.cast(type))
+        (property as KMutableProperty1<Object, Any>).set(entity, value.to(type))
     }
 
     @Suppress("UNCHECKED_CAST")
     fun getter(entity: Object): Variant? {
-        return Variant.from((property as KMutableProperty1<Object, Any>).get(entity))
+        return Variant((property as KMutableProperty1<Object, Any>).get(entity))
     }
 }
 
@@ -23,14 +23,14 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
 internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?): CValue<godot_variant> {
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
-    return wrapper.getter(obj)?._variant?.pointed?.readValue() ?: cValue()
+    return wrapper.getter(obj)?._raw?.pointed?.readValue() ?: cValue()
 }
 
 @Suppress("UNUSED_PARAMETER")
 internal fun setterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?, value: CPointer<godot_variant>?) {
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
-    wrapper.setter(obj, Variant.create(value!!))
+    wrapper.setter(obj, Variant(value!!))
 }
 
 internal fun destroySetterWrapper(methodData: COpaquePointer?) {
@@ -56,11 +56,11 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
             set_func = staticCFunction(::setterWrapper)
         }
 
-        val variant = Variant.from(defaultValue)
+        val variant: Variant? = null //Variant(defaultValue)
 
         val attr = cValue<godot_property_attributes> {
-            type = (variant?._type ?: godot_variant_type.GODOT_VARIANT_TYPE_OBJECT.value).toInt()
-            if (variant != null) godot.api.godot_variant_new_copy!!(default_value.ptr, variant._variant)
+            type = (variant?.getType() ?: Variant.Type.NIL).ordinal
+            if (variant != null) godot.api.godot_variant_new_copy!!(default_value.ptr, variant._raw)
             hint = godot_property_hint.GODOT_PROPERTY_HINT_NONE
             rset_type = GODOT_METHOD_RPC_MODE_DISABLED
             usage = GODOT_PROPERTY_USAGE_DEFAULT

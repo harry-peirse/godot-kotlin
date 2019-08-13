@@ -14,7 +14,7 @@ data class GProperty(val name: String,
 
     fun sanitisedName() = name.sanitisedName()
 
-    fun GMethod?.isSuitableGetter(propertyType: String): Boolean = this != null && !hasVarargs && arguments.isEmpty() && (returnType == propertyType || returnTypeIsEnum() && propertyType == "int")
+    fun GMethod?.isSuitableGetter(propertyType: String): Boolean = this != null && !hasVarargs && arguments.isEmpty() && (returnType == propertyType || returnTypeIsEnum && propertyType == "int")
     fun GMethod?.isSuitableSetter(propertyType: String): Boolean = this != null && !hasVarargs && returnType == "void" && arguments.size == 1 && arguments[0].type == propertyType
 
     fun parse(clazz: GClass, content: List<GClass>): PropertySpec? {
@@ -26,7 +26,7 @@ data class GProperty(val name: String,
             val type = getterMethod!!.returnType
             setterMethod!!.arguments[0].type = type
 
-            PropertySpec.builder(sanitisedName(), getterMethod.sanitisedReturnType().toClassName(), KModifier.OPEN)
+            PropertySpec.builder(sanitisedName(), getterMethod.sanitisedReturnType.toClassName().parameterized(), KModifier.OPEN)
                     .mutable(true)
                     .getter(parseGetter(getterMethod))
                     .setter(parseSetter(setterMethod))
@@ -48,11 +48,11 @@ data class GProperty(val name: String,
     }
 
     fun parseGetter(getterMethod: GMethod): FunSpec = FunSpec.getterBuilder()
-            .addStatement("return ${getterMethod.sanitisedName()}()")
+            .addStatement("return ${getterMethod.sanitisedName}()")
             .build()
 
     fun parseSetter(setterMethod: GMethod): FunSpec = FunSpec.setterBuilder()
-            .addParameter("value", type.toClassName())
-            .addStatement("return ${setterMethod.sanitisedName()}(value)")
+            .addParameter("value", type.toClassName().parameterized())
+            .addStatement("return ${setterMethod.sanitisedName}(value)")
             .build()
 }

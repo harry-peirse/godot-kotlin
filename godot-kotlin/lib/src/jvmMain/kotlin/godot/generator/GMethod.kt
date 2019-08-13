@@ -16,32 +16,44 @@ data class GMethod(
 ) {
     lateinit var clazz: GClass
 
-    fun returnTypeIsEnum(): Boolean = returnType.startsWith("enum.")
-    fun sanitisedName() = name.sanitisedName()
-    fun sanitisedReturnType() = returnType.sanitisedType()
+    val returnTypeIsEnum: Boolean get() = returnType.startsWith("enum.")
+    val sanitisedName: String get() = name.sanitisedName()
+    val sanitisedReturnType: String get() = returnType.sanitisedType()
 
     fun functionBody(signature: Signature) = CodeBlock.builder()
             .apply {
                 if (name == "free") {
                     addStatement("godot.api.godot_object_destroy!!(_raw)")
                 } else {
-                    addStatement("${if (returnType != "void") "return " else ""}" +
-                            "${if (returnTypeIsEnum()) "${sanitisedReturnType()}.byValue(" else ""}" +
-                            "${signature.methodName()}(mb.${sanitisedName()}!!, " +
-                            "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
-                            "${arguments.joinToString(", ") {
-                                if (it.isEnum()) "${it.sanitisedName()}.value"
-                                else it.sanitisedName()
-                            }}" +
-                            "${if (hasVarargs) ", *varargs" else ""})" +
-                            "${if (returnTypeIsEnum()) ")" else ""}")
+                    if(returnType != "void") {
+                        addStatement("return " +
+                                (if (returnTypeIsEnum) "$sanitisedReturnType.byValue(" else "") +
+                                "${signature.methodName()}(mb.$sanitisedName!!, " +
+                                "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
+                                arguments.joinToString(", ") {
+                                    if (it.sanitisedType.toClassName().isEnumType()) "${it.sanitisedName}.value"
+                                    else it.sanitisedName
+                                } +
+                                "${if (hasVarargs) ", *varargs" else ""})" +
+                                (if (returnTypeIsEnum) ")" else ""))
+                    } else {
+                        addStatement((if (returnTypeIsEnum) "$sanitisedReturnType.byValue(" else "") +
+                                "${signature.methodName()}(mb.$sanitisedName!!, " +
+                                "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
+                                arguments.joinToString(", ") {
+                                    if (it.sanitisedType.toClassName().isEnumType()) "${it.sanitisedName}.value"
+                                    else it.sanitisedName
+                                } +
+                                "${if (hasVarargs) ", *varargs" else ""})" +
+                                (if (returnTypeIsEnum) ")" else ""))
+                    }
                 }
             }
             .build()
 
     fun parse(clazz: GClass, content: List<GClass>, signature: Signature): FunSpec {
         this.clazz = clazz
-        return FunSpec.builder(sanitisedName())
+        return FunSpec.builder(sanitisedName)
                 .addModifiers(KModifier.OPEN)
                 .apply {
                     var c = clazz
@@ -75,11 +87,11 @@ data class GMethod(
                         .addMember("ExperimentalUnsignedTypes::class")
                         .build())
                 .addCode(functionBody(signature))
-                .returns(sanitisedReturnType().toClassName())
+                .returns(sanitisedReturnType.toClassName().parameterized())
                 .build()
     }
 
-    fun parseBinding(): PropertySpec = PropertySpec.builder(sanitisedName(), CPointer_GodotMethodBind.copy(nullable = true))
+    fun parseBinding(): PropertySpec = PropertySpec.builder(sanitisedName, CPointer_GodotMethodBind.copy(nullable = true))
             .mutable()
             .initializer("null")
             .build()

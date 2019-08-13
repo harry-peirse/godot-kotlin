@@ -8,11 +8,14 @@ import kotlin.reflect.KClass
 
 class ClassBinder
 
+@UseExperimental(ExperimentalUnsignedTypes::class)
 class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>, val producer: () -> T, val binder: ClassBinder.() -> Unit) {
     val typeName: String
         get() = type.simpleName!!
     val baseTypeName: String
         get() = baseType.simpleName!!
+    val typeTag: UInt
+        get() = typeName.hashCode().toUInt()
 
     fun new(): T {
         val script = NativeScript.new()
@@ -20,8 +23,8 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
         script.setLibrary(gdNative)
 
         memScoped {
-            script.setClassName(GodotString(typeName))
-            return getFromVariant(script.new()._variant)
+            script.setClassName(typeName)
+            return getFromVariant(Variant(script.new())._raw)
         }
     }
 
@@ -40,10 +43,10 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
 }
 
 internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
-    val _variant = instance?.reinterpret<godot_variant>()!!
+    val variant = Variant(instance!!.reinterpret())
     val boundClass = methodData?.asStableRef<BoundClass<*, *>>()?.get()!!
-    val obj = Variant.create(_variant, boundClass)
-    return obj.asStableRef()?.asCPointer()
+    val obj = variant.toObject(boundClass.typeTag)
+    return obj._stableRef.asCPointer()
 }
 
 fun registerClass(boundClass: BoundClass<*, *>) {
@@ -57,7 +60,7 @@ fun registerClass(boundClass: BoundClass<*, *>) {
         print("Registering class ${boundClass.typeName} : ${boundClass.baseTypeName}")
 
         nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, boundClass.typeName.cstr.ptr, boundClass.baseTypeName.cstr.ptr, create, destroy)
-//        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, alloc<UIntVar> { value = clazz.getTypeTag() }.ptr)
+        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, alloc<UIntVar> { value = boundClass.typeTag }.ptr)
         boundClass.binder(ClassBinder())
     }
 }

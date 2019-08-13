@@ -88,15 +88,15 @@ fun nativescriptTerminate(handle: NativescriptHandle) {
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
-    val _variant = instance?.reinterpret<godot_variant>()!!
-    val obj: Object = Variant.create(_variant)
+    val variant = Variant(instance!!.reinterpret())
+    val obj: Object = variant.toObject(Variant(typeTag!!.reinterpret()).toUInt())
     obj._init()
-    return obj.asStableRef()?.asCPointer()
+    return obj._stableRef.asCPointer()
 }
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
-    wrapper?.asStableRef<Variant>()?.get()?.dispose()
+    wrapper?.asStableRef<Object>()?.dispose()
 }
 
 fun nativeScriptInit(handle: NativescriptHandle) {

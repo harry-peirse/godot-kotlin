@@ -20,6 +20,10 @@ val ThreadLocal = ClassName("kotlin.native", "ThreadLocal")
 val HashMap = ClassName("kotlin.collections", "HashMap")
 val CPointed = ClassName("kotlinx.cinterop", "CPointed")
 val CPointer = ClassName("kotlinx.cinterop", "CPointer")
+val CPointerVar = ClassName("kotlinx.cinterop", "CPointerVar")
+val StableRef = ClassName("kotlinx.cinterop", "StableRef")
+val Object = ClassName(PACKAGE, "Object")
+val StableRef_Object = StableRef.parameterizedBy(Object)
 val COpaquePointer = ClassName("kotlinx.cinterop", "COpaquePointer")
 val COpaquePointerVar = ClassName("kotlinx.cinterop", "COpaquePointerVar")
 val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
@@ -29,19 +33,36 @@ val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.p
 val CPointer_GodotVariant = CPointer.parameterizedBy(GodotVariant)
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
 val CPointer_COpaquePointer = CPointer.parameterizedBy(COpaquePointer)
-val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(COpaquePointerVar.parameterizedBy(GodotVariant))
+val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(CPointerVar.parameterizedBy(GodotVariant))
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
 val CFunction = ClassName("kotlinx.cinterop", "CFunction")
 val CFunction_CPointer_GodotVariant = CFunction.parameterizedBy(LambdaTypeName.get(null, emptyList(), CPointer_GodotVariant.copy(true)))
 
+val String = ClassName("kotlin", "String")
+val Array = ClassName("kotlin", "Array")
+val MutableMap = ClassName("kotlin.collections", "MutableMap")
+
+val Array_Variant = Array.parameterizedBy(Variant)
+val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Any::class.asClassName())
+
 val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 
-fun ClassName.isPrimitiveType(): Boolean = packageName == "kotlin"
+fun ClassName.isPrimitiveType(): Boolean = packageName == "kotlin" && simpleName in listOf("Short", "Int", "Long", "Float", "Double", "UShort", "UInt", "ULong", "UFloat", "UDouble", "Boolean", "Byte")
 fun ClassName.isCoreType(): Boolean = (packageName == PACKAGE || packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
 fun ClassName.isCoreEnumType(): Boolean = (packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
-fun ClassName.isEnumType(): Boolean = (packageName == PACKAGE) && !simpleName.isCoreType() && simpleName.contains(".")
+fun ClassName.isEnumType(): Boolean = (packageName == PACKAGE) && simpleName.contains(".")
 fun ClassName.isUnit(): Boolean = this == godot.generator.Unit
-fun ClassName.toVarType(): ClassName = if (this.isPrimitiveType()) ClassName("kotlinx.cinterop", "${simpleName}Var") else this
+fun ClassName.toVarType(): ClassName = when {
+    isPrimitiveType() -> ClassName("kotlinx.cinterop", "${simpleName}Var")
+    this == String -> ClassName("kotlinx.cinterop", "ByteVar")
+    else -> this
+}
+
+fun ClassName.parameterized(): TypeName = when(this) {
+    Array -> Array_Variant
+    MutableMap -> MutableMap_Variant_Any
+    else -> this
+}
 
 fun String.toCamelCase() = (if (startsWith("_")) "_" else "") + split("_").joinToString("") { it.capitalize() }.decapitalize()
 
@@ -62,9 +83,6 @@ fun String.typeOverride(): String = when (this) {
     "float", "real" -> "Float"
     "bool" -> "Boolean"
     "void" -> "Unit"
-    "String" -> "String"
-    "Array" -> "Array<Variant>"
-    "Dictionary" -> "MutableMap<Variant, Any>"
     "Error" -> "godot_error"
     "PoolRealArray" -> "PoolFloatArray"
     else -> this
@@ -78,9 +96,9 @@ fun String.toClassName(): ClassName = when (this) {
     "Boolean" -> godot.generator.Boolean
     "Unit" -> godot.generator.Unit
     "godot_error" -> ClassName(INTERNAL_PACKAGE, this)
-    "String" -> ClassName("", "String")
-    "Array<Variant>" -> ClassName("", "Array<Variant>")
-    "MutableMap<Variant, Any>" -> ClassName("", "MutableMap<Variant, Any>")
+    "String" -> String
+    "Array" -> Array
+    "Dictionary" -> MutableMap
     else -> ClassName(PACKAGE, this)
 }
 
@@ -89,13 +107,14 @@ fun String.sanitisedName() = removePrefix("enum.").replace("::", "").toCamelCase
 
 fun String.isPrimitiveType(): Boolean = toClassName().isPrimitiveType()
 
-fun String.isGeneratedClassType(): Boolean = !this.isCoreType() && !this.isPrimitiveType()
+fun String.isClassType(): Boolean = !this.isCoreType() && !this.isPrimitiveType()
 
 fun String.isCoreType(): Boolean = when (this) {
     "AABB",
     "Array",
     "Basis",
     "Color",
+    "Dictionary",
     "NodePath",
     "Plane",
     "PoolByteArray",
@@ -108,9 +127,7 @@ fun String.isCoreType(): Boolean = when (this) {
     "Quat",
     "Rect2",
     "RID",
-    "GodotString",
-    "GodotArray",
-    "GodotDictionary",
+    "String",
     "Transform",
     "Transform2D",
     "Variant",

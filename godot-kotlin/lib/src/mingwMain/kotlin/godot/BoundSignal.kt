@@ -27,8 +27,7 @@ fun registerSignal(className: String, signalName: String, vararg arguments: Pair
 
         (0 until signal.num_args).forEach { i ->
             val name: String = arguments[i].first
-            val _key = GodotString(name)._string
-            godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, _key)
+            godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, name.toGString())
             signal.args!![i].type = arguments[i].second.value.toInt()
         }
 
