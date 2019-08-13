@@ -28,6 +28,7 @@ val Variant = ClassName(PACKAGE, "Variant")
 val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.producerOf(ClassName("kotlinx.cinterop", "CPointed")))
 val CPointer_GodotVariant = CPointer.parameterizedBy(GodotVariant)
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
+val CPointer_COpaquePointer = CPointer.parameterizedBy(COpaquePointer)
 val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(COpaquePointerVar.parameterizedBy(GodotVariant))
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
 val CFunction = ClassName("kotlinx.cinterop", "CFunction")
@@ -61,14 +62,11 @@ fun String.typeOverride(): String = when (this) {
     "float", "real" -> "Float"
     "bool" -> "Boolean"
     "void" -> "Unit"
-    "String" -> "GodotString"
-    "Array" -> "GodotArray"
-    "Dictionary" -> "GodotDictionary"
+    "String" -> "String"
+    "Array" -> "Array<Variant>"
+    "Dictionary" -> "MutableMap<Variant, Any>"
     "Error" -> "godot_error"
     "PoolRealArray" -> "PoolFloatArray"
-    "Variant.Operator" -> "godot_variant_operator"
-    "Variant.Type" -> "godot_variant_type"
-    "Vector3.Axis" -> "godot_vector3_axis"
     else -> this
 }
 
@@ -79,7 +77,10 @@ fun String.toClassName(): ClassName = when (this) {
     "Float" -> godot.generator.Float
     "Boolean" -> godot.generator.Boolean
     "Unit" -> godot.generator.Unit
-    "godot_error", "godot_variant_operator", "godot_variant_type", "godot_vector3_axis" -> ClassName(INTERNAL_PACKAGE, this)
+    "godot_error" -> ClassName(INTERNAL_PACKAGE, this)
+    "String" -> ClassName("", "String")
+    "Array<Variant>" -> ClassName("", "Array<Variant>")
+    "MutableMap<Variant, Any>" -> ClassName("", "MutableMap<Variant, Any>")
     else -> ClassName(PACKAGE, this)
 }
 

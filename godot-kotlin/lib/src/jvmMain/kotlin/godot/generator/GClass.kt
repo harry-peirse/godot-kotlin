@@ -36,9 +36,8 @@ data class GClass(
 
         if (baseClass.isNullOrEmpty()) {
             println("Discovered root class: $name")
-            baseClass = "Variant"
         } else {
-            println("  $name")
+            println("$name::class -> $name.getFromVariant(_raw)")
         }
 
         if (name == "GlobalConstants") {
@@ -63,7 +62,6 @@ data class GClass(
                 }
                 .addType((TypeSpec.classBuilder(ClassName(PACKAGE, name)).addType(buildCore(TypeSpec.companionObjectBuilder()).build()))
                         .addAnnotation(UseExperimentalUnsignedTypes)
-                        .superclass(ClassName(PACKAGE, baseClass))
                         .addModifiers(KModifier.OPEN)
                         .addTypes(enums.map { enum -> enum.parse() })
                         .addProperties(properties.mapNotNull {
@@ -78,6 +76,14 @@ data class GClass(
                                 primaryConstructor(FunSpec.constructorBuilder()
                                         .addModifiers(KModifier.INTERNAL)
                                         .build())
+                            }
+                            if (name == "Object") {
+                                addProperty(PropertySpec.builder("_raw", COpaquePointer, KModifier.LATEINIT, KModifier.INTERNAL)
+                                        .mutable(true)
+                                        .build())
+                            }
+                            if(baseClass.isNotBlank()) {
+                                superclass(ClassName(PACKAGE, baseClass))
                             }
                         }
                         .build()

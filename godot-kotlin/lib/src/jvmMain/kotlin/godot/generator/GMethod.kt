@@ -23,12 +23,12 @@ data class GMethod(
     fun functionBody(signature: Signature) = CodeBlock.builder()
             .apply {
                 if (name == "free") {
-                    addStatement("godot.api.godot_object_destroy!!(_variant)")
+                    addStatement("godot.api.godot_object_destroy!!(_raw)")
                 } else {
                     addStatement("${if (returnType != "void") "return " else ""}" +
                             "${if (returnTypeIsEnum()) "${sanitisedReturnType()}.byValue(" else ""}" +
                             "${signature.methodName()}(mb.${sanitisedName()}!!, " +
-                            "_variant${if (arguments.isNotEmpty()) ", " else ""}" +
+                            "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
                             "${arguments.joinToString(", ") {
                                 if (it.isEnum()) "${it.sanitisedName()}.value"
                                 else it.sanitisedName()

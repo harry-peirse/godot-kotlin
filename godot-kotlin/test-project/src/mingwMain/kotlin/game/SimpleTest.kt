@@ -1,6 +1,5 @@
 package game
 
-import godot.GodotString
 import godot.Input
 import godot.Variant
 import godot.internal.godot_variant_type

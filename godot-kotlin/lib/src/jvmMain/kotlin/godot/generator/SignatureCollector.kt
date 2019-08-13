@@ -13,7 +13,7 @@ data class Signature(
                     .addMember("ExperimentalUnsignedTypes::class")
                     .build())
             .addParameter("methodBinding", CPointer_GodotMethodBind)
-            .addParameter("_variant", CPointer_GodotVariant)
+            .addParameter("_raw", COpaquePointer)
             .apply {
                 returns(returnType)
                 arguments.forEachIndexed { index, it -> addParameter("arg$index", it) }
@@ -24,11 +24,11 @@ data class Signature(
                     .apply {
                         if (varargs) {
                             add(argumentDeclarations(arguments, varargs))
-                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, _variant, args, varargs.size + ${arguments.size}, null))", Variant)
+                            addStatement("return %T(godot.api.godot_method_bind_call!!(methodBinding, _raw, args, varargs.size + ${arguments.size}, null))", Variant)
                         } else {
                             if (!returnType.isUnit() && !varargs) add(returnTypeDeclaration(returnType))
                             add(argumentDeclarations(arguments, varargs))
-                            addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, _variant, args, ${returnOutParameter(returnType)})")
+                            addStatement("godot.api.godot_method_bind_ptrcall!!(methodBinding, _raw, args, ${returnOutParameter(returnType)})")
                             if (!returnType.isUnit()) add(returnStatement(returnType))
                         }
                     }
@@ -46,12 +46,12 @@ data class Signature(
         arguments.forEachIndexed { index, it ->
             when {
                 it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T> { this.value = arg$index }.ptr.reinterpret()", it.toVarType())
-                else -> addStatement("args[$index] = arg$index._variant")
+                else -> addStatement("args[$index] = arg$index._raw")
             }
         }
         if (hasVarargs) {
             beginControlFlow("varargs.forEachIndexed")
-            addStatement("index, it -> args[index] = it._variant")
+            addStatement("index, it -> args[index] = it._raw")
             endControlFlow()
         }
     }.build()
@@ -77,7 +77,7 @@ data class Signature(
             type.isCoreType() -> addStatement("return ret")
             !type.isPrimitiveType() -> {
                 addStatement("val result = %T()", type)
-                addStatement("result = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._variant)?.reinterpret()")
+                addStatement("result = godot.nativescript11Api.godot_nativescript_get_instance_binding_data!!(godot.languageIndex, ret._raw)?.reinterpret()")
                 addStatement("return result")
             }
             type.isPrimitiveType() -> addStatement("return ret.value")
