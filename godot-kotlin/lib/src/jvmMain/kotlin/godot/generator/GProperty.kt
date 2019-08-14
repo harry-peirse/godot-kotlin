@@ -21,11 +21,14 @@ data class GProperty(val name: String,
         this.clazz = clazz
         val getterMethod = clazz.methodMap[getter]
         val setterMethod = clazz.methodMap[setter]
-        return if (getterMethod.isSuitableGetter(type) && setterMethod.isSuitableSetter(type)) {
+        if (getterMethod.isSuitableGetter(type) && setterMethod.isSuitableSetter(type)) {
 
             val type = getterMethod!!.returnType
             setterMethod!!.arguments[0].type = type
 
+            // XXX: Not being returned yet - decided its best for now as getters have misleading behaviour
+            // They always return a different reference, not the same one. Fine for a method, but not for a property
+            // Keeping this code running in the meantime as it makes the setters and getters type arguments consistent
             PropertySpec.builder(sanitisedName(), getterMethod.sanitisedReturnType.toClassName().parameterized(), KModifier.OPEN)
                     .mutable(true)
                     .getter(parseGetter(getterMethod))
@@ -44,7 +47,8 @@ data class GProperty(val name: String,
                         }
                     }
                     .build()
-        } else null
+        }
+        return null
     }
 
     fun parseGetter(getterMethod: GMethod): FunSpec = FunSpec.getterBuilder()
