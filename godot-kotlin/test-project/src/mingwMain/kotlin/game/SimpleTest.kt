@@ -2,10 +2,11 @@ package game
 
 import godot.Input_
 import godot.Sprite
+import godot.Vector2
 
 class SimpleTest : Sprite() {
 
-    var speed = 120f
+    var speed = 200f
     var lastDirection = 0
 
     override fun _process(delta: Float) {
@@ -18,22 +19,14 @@ class SimpleTest : Sprite() {
         }
 
         val frameSpeed = delta * speed
-
-        godot.print("")
-        godot.print("1  $position")
-
-        position.apply {
-            when (newDirection) {
-                1 -> x -= frameSpeed
-                2 -> x += frameSpeed
-                3 -> y -= frameSpeed
-                4 -> y += frameSpeed
-            }
+        val position = getPosition()
+        when (newDirection) {
+            1 -> position.x -= frameSpeed
+            2 -> position.x += frameSpeed
+            3 -> position.y -= frameSpeed
+            4 -> position.y += frameSpeed
         }
-        godot.print("2  $position")
-
         setPosition(position)
-        godot.print("3  $position")
 
         if (newDirection != lastDirection) {
             emitSignal("direction_changed", newDirection, position)

@@ -115,6 +115,10 @@ fun nativeScriptInit(handle: NativescriptHandle) {
 internal lateinit var nativescriptHandle: COpaquePointer
 internal var languageIndex: Int = -1
 
+internal inline fun <reified T : CStructVar> alloc(): CPointer<T> {
+    return alloc(sizeOf<T>())
+}
+
 internal inline fun <reified T : CStructVar> alloc(size: Long): CPointer<T> {
     return godot.api.godot_alloc!!(size.toInt())!!.reinterpret()
 }

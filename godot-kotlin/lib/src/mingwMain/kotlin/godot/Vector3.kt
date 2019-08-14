@@ -19,4 +19,6 @@ class Vector3 internal constructor(val _raw: CPointer<godot_vector3>) {
             fun byValue(value: UInt) = values()[value.toInt()]
         }
     }
+
+    constructor() : this(godot.alloc())
 }

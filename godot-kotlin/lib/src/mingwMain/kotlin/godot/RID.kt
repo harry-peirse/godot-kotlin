@@ -6,4 +6,6 @@ import kotlinx.cinterop.CValue
 
 class RID internal constructor(val _raw: CPointer<godot_rid>) {
     internal constructor(_raw: CValue<godot_rid>) : this(_raw.place(godot.alloc(godot_rid.size)))
+
+    constructor() : this(godot.alloc())
 }

@@ -56,15 +56,22 @@ data class Signature(
             addStatement("index, it -> args[index + ${arguments.size}] = Variant.of(it)._raw")
             endControlFlow()
         } else {
-            addStatement("val args: %T = allocArray(${arguments.size} * %T.size)", CPointer_COpaquePointerVar, GodotVariant)
-            arguments.forEachIndexed { index, it ->
-                when {
-                    it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T>{ this.value = arg$index }.ptr", it.toVarType())
-                    it == String -> addStatement("args[$index] = arg$index.toGString()")
-                    it == Array -> addStatement("args[$index] = arg$index.toGArray()")
-                    it == MutableMap -> addStatement("args[$index] = arg$index.toGDictionary()")
-                    else -> addStatement("args[$index] = arg$index._raw")
-                }
+            val sb = StringBuilder()
+            if(arguments.isEmpty()) {
+                addStatement("val args: %T = allocArray(0)", CPointer_COpaquePointerVar)
+            } else {
+                sb.append("val args: %T = allocArrayOf(\n")
+                sb.append(arguments.mapIndexed { index, it ->
+                    when {
+                        it.isPrimitiveType() -> "alloc<${it.toVarType().simpleName}>{ this.value = arg$index }.ptr"
+                        it == String -> "arg$index.toGString()"
+                        it == Array -> "arg$index.toGArray()"
+                        it == MutableMap -> "arg$index.toGDictionary()"
+                        else -> "arg$index._raw"
+                    }
+                }.joinToString(", \n"))
+                sb.append("\n)")
+                addStatement(sb.toString(), CPointer_COpaquePointerVar)
             }
         }
     }.build()
@@ -72,6 +79,7 @@ data class Signature(
     private fun returnTypeDeclaration(type: ClassName) = CodeBlock.builder().apply {
         when {
             type.isPrimitiveType() -> addStatement("val ret = alloc<%T>()", type.toVarType())
+            type.isCoreType() -> addStatement("val ret = %T()", type)
             else -> addStatement("val ret = Variant()")
         }
     }.build()
@@ -90,7 +98,7 @@ data class Signature(
             type == MutableMap -> addStatement("return ret.toMutableMap()")
             type.isEnumType() -> addStatement("return %T.byValue(ret.value)", type)
             type.isPrimitiveType() -> addStatement("return ret.value")
-            type.isCoreType() -> addStatement("return ret.to%T()", type)
+            type.isCoreType() -> addStatement("return ret")
             else -> addStatement("return %T.getFromVariant(ret._raw)", type)
         }
     }.build()
@@ -135,7 +143,7 @@ class SignatureCollector {
     }
 
     fun parse(): FileSpec = FileSpec.builder(PACKAGE, "__ICalls")
-            .addImport("kotlinx.cinterop", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "COpaquePointer")
+            .addImport("kotlinx.cinterop", "allocArrayOf", "invoke", "cstr", "memScoped", "alloc", "cValue", "allocArray", "pointed", "set", "value", "ptr", "reinterpret", "COpaquePointer")
             .apply {
                 println("Most args: $mostArgs")
                 println("Size: ${list.size}")

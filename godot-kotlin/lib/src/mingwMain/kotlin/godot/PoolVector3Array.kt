@@ -6,4 +6,6 @@ import kotlinx.cinterop.CValue
 
 class PoolVector3Array internal constructor(val _raw: CPointer<godot_pool_vector3_array>) {
     internal constructor(_raw: CValue<godot_pool_vector3_array>) : this(_raw.place(godot.alloc(godot_pool_vector3_array.size)))
+
+    constructor() : this(godot.alloc())
 }
