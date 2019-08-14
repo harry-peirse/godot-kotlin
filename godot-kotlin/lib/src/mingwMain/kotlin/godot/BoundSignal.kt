@@ -7,12 +7,12 @@ import godot.internal.godot_variant_type
 import kotlinx.cinterop.*
 import platform.posix.memset
 
-inline fun <reified T : Object> registerSignal(signalName: String, vararg arguments: Pair<String, godot_variant_type>) {
+inline fun <reified T : Object> registerSignal(signalName: String, vararg arguments: Pair<String, Variant.Type>) {
     registerSignal(T::class.simpleName!!, signalName, *arguments)
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
-fun registerSignal(className: String, signalName: String, vararg arguments: Pair<String, godot_variant_type>) {
+fun registerSignal(className: String, signalName: String, vararg arguments: Pair<String, Variant.Type>) {
     godot.print("  $className: registering signal   $signalName(${arguments.joinToString(", ") { it.first }})")
     memScoped {
         val signal: godot_signal = alloc()
@@ -28,7 +28,7 @@ fun registerSignal(className: String, signalName: String, vararg arguments: Pair
         (0 until signal.num_args).forEach { i ->
             val name: String = arguments[i].first
             godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, name.toGString())
-            signal.args!![i].type = arguments[i].second.value.toInt()
+            signal.args!![i].type = arguments[i].second.ordinal
         }
 
         godot.nativescriptApi.godot_nativescript_register_signal!!(godot.nativescriptHandle, className.cstr.ptr, signal.ptr)

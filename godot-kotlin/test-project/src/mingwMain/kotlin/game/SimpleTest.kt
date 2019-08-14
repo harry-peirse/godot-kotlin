@@ -11,26 +11,21 @@ class SimpleTest : Sprite() {
 
     override fun _process(delta: Float) {
         val frameSpeed = delta * speed
-        val newDirection: Int
-        val position = position.apply {
-            when {
-                Input_.isActionPressed("move_left") -> {
-                    newDirection = 1
-                    x -= frameSpeed
-                }
-                Input_.isActionPressed("move_right") -> {
-                    newDirection = 2
-                    x += frameSpeed
-                }
-                Input_.isActionPressed("move_up") -> {
-                    newDirection = 3
-                    y -= frameSpeed
-                }
-                Input_.isActionPressed("move_down") -> {
-                    newDirection = 4
-                    y += frameSpeed
-                }
-                else -> newDirection = 0
+
+        val newDirection = when {
+            Input_.isActionPressed("move_left") -> 1
+            Input_.isActionPressed("move_right") -> 2
+            Input_.isActionPressed("move_up") -> 3
+            Input_.isActionPressed("move_down") -> 4
+            else -> 0
+        }
+
+        position.apply {
+            when (newDirection) {
+                1 -> x -= frameSpeed
+                2 -> x += frameSpeed
+                3 -> y -= frameSpeed
+                4 -> y += frameSpeed
             }
         }
 

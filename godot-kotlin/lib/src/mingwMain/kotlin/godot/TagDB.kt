@@ -23,7 +23,7 @@ internal class TagDB {
             parents[type.tag()] = baseType.tag()
         }
         types[type.tag()] = type
-        producers[baseType.tag()] = producer
+        producers[type.tag()] = producer
     }
 
     fun registerGlobalType(name: String, type: KClass<out Object>, baseType: KClass<out Object>, producer: () -> Object) = memScoped {

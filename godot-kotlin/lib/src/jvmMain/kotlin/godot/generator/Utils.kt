@@ -29,7 +29,7 @@ val Variant = ClassName(PACKAGE, "Variant")
 val CPointer_GodotVariant = CPointer.parameterizedBy(GodotVariant)
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
 val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(CPointerVar.parameterizedBy(GodotVariant))
-val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
+val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind).copy(true)
 val CFunction = ClassName("kotlinx.cinterop", "CFunction")
 val CFunction_CPointer_GodotVariant = CFunction.parameterizedBy(LambdaTypeName.get(null, emptyList(), CPointer_GodotVariant.copy(true)))
 

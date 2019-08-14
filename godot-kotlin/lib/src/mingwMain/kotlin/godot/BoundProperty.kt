@@ -21,7 +21,6 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
 
 @Suppress("UNUSED_PARAMETER")
 internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?): CValue<godot_variant> {
-    godot.print("getterWrapper")
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
     return wrapper.getter(obj)?._raw?.pointed?.readValue() ?: cValue()
@@ -29,7 +28,6 @@ internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePoin
 
 @Suppress("UNUSED_PARAMETER")
 internal fun setterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?, value: CPointer<godot_variant>?) {
-    godot.print("setterWrapper")
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
     wrapper.setter(obj, Variant(value!!))
@@ -58,12 +56,7 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
             set_func = staticCFunction(::setterWrapper)
         }
 
-        godot.print("1) $getter $setter")
-        godot.print("A")
-
-        val variant = Variant.of(defaultValue)
-
-        godot.print("2) $variant")
+        val variant = if (defaultValue == null) null else Variant.of(defaultValue)
 
         val attr = cValue<godot_property_attributes> {
             type = (variant?.getType() ?: Variant.Type.NIL).ordinal
@@ -73,8 +66,6 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
             usage = GODOT_PROPERTY_USAGE_DEFAULT
             godot.api.godot_string_parse_utf8!!(hint_string.ptr, "".cstr.ptr)
         }
-
-        godot.print("3) $attr")
 
         nativescriptApi.godot_nativescript_register_property!!(nativescriptHandle, className.cstr.ptr, propertyName.cstr.ptr, attr.ptr, setter, getter)
     }

@@ -115,6 +115,8 @@ data class GClass(
                             .apply {
                                 methods.forEach {
                                     addStatement("mb.${it.sanitisedName} = godot.api.godot_method_bind_get_method!!(\"$name\".cstr.ptr, \"${it.name}\".cstr.ptr)")
+//                                    addStatement("if(mb.${it.sanitisedName} == null || ${it.isVirtual}) println(%P)",
+//                                            "$name.${it.sanitisedName} is \${mb.${it.sanitisedName}} and virtual: ${it.isVirtual})")
                                 }
                             }
                             .endControlFlow()

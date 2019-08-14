@@ -88,16 +88,15 @@ fun nativescriptTerminate(handle: NativescriptHandle) {
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
-    godot.print("wrapperCreate")
-    val obj: Object = tagDB.producers[Variant(typeTag!!.reinterpret()).toUInt()]!!()
-    obj._raw = instance!!.reinterpret()
-    obj._init()
-    return obj._stableRef.asCPointer()
+    val variant = Variant(typeTag!!.reinterpret())
+    val producer = tagDB.producers[variant.toUInt()]
+    val obj = producer?.invoke()
+    obj?._raw = instance!!.reinterpret()
+    return obj?._stableRef?.asCPointer()
 }
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
-    godot.print("wrapperDestroy")
     wrapper?.asStableRef<Object>()?.dispose()
 }
 

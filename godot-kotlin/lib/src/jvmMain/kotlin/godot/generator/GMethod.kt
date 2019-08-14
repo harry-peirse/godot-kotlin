@@ -28,7 +28,7 @@ data class GMethod(
                     val sb = StringBuilder()
                     if (returnType != "void") sb.append("return ")
                     if (returnTypeIsEnum) sb.append("$sanitisedReturnType.byValue(")
-                    sb.append("${signature.methodName()}(mb.$sanitisedName!!, _raw")
+                    sb.append("${signature.methodName()}(mb.$sanitisedName, _raw")
                     if (arguments.isNotEmpty()) sb.append(", ")
                     sb.append(arguments.joinToString(", ") { it.sanitisedName + if (it.sanitisedType.toClassName().isEnumType()) ".value" else "" })
                     if (hasVarargs) sb.append(", *varargs")

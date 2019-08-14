@@ -478,17 +478,8 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     @UseExperimental(ExperimentalUnsignedTypes::class)
     companion object {
 
-        internal fun <T : Any?> of(value: T): Variant? {
-            godot.print("B")
-            return if (value == null) {
-                print("Tried to create Variant from null")
-                null
-            } else of(value)
-        }
-
         @Suppress("UNCHECKED_CAST")
         internal fun <T : Any> of(value: T): Variant {
-            print("Creating Variant of $value with type ${value::class}")
             return when (value) {
                 is Variant -> Variant(value)
                 is Boolean -> Variant(value)
