@@ -69,7 +69,7 @@ data class GMethod(
                         } else it.parse()
                     })
                     if (hasVarargs) {
-                        addParameter(ParameterSpec.builder("varargs", ClassName(PACKAGE, "Variant"))
+                        addParameter(ParameterSpec.builder("varargs", _Any)
                                 .addModifiers(KModifier.VARARG)
                                 .build())
                     }

@@ -17,7 +17,7 @@ data class Signature(
             .returns(returnType.parameterized())
             .apply {
                 arguments.forEachIndexed { index, it -> addParameter("arg$index", it.parameterized()) }
-                if (varargs) addParameter("varargs", Variant, KModifier.VARARG)
+                if (varargs) addParameter("varargs", _Any, KModifier.VARARG)
             }
             .addCode(CodeBlock.builder()
                     .beginControlFlow("memScoped")
@@ -40,23 +40,23 @@ data class Signature(
                     .build())
             .build()
 
-    fun methodName() = "_icall__${returnType.simpleName}${if(arguments.isNotEmpty()) "__" else ""}${arguments.joinToString("_") { it.simpleName }}"
+    fun methodName() = "_icall__${returnType.simpleName}${if (arguments.isNotEmpty()) "__" else ""}${arguments.joinToString("_") { it.simpleName }}"
 
     override fun compareTo(other: Signature) = methodName().compareTo(other.methodName())
 
     private fun argumentDeclarations(arguments: List<ClassName>, hasVarargs: Boolean) = CodeBlock.builder().apply {
         if (hasVarargs) {
-            addStatement("val args: %T = allocArray((${arguments.size} + varargs.size) * %T.size)", CPointer_CPointerVar_GodotVariant, CPointerVarOf)
+            addStatement("val args: %T = allocArray((${arguments.size} + varargs.size) * %T.size)", CPointer_CPointerVar_GodotVariant, GodotVariant)
             arguments.forEachIndexed { index, _ ->
                 when {
                     else -> addStatement("args[$index] = Variant(arg$index)._raw")
                 }
             }
             beginControlFlow("varargs.forEachIndexed")
-            addStatement("index, it -> args[index] = it._raw")
+            addStatement("index, it -> args[index + ${arguments.size}] = Variant.of(it)._raw")
             endControlFlow()
         } else {
-            addStatement("val args: %T = allocArray(${arguments.size} * %T.size)", CPointer_COpaquePointerVar, CPointerVarOf)
+            addStatement("val args: %T = allocArray(${arguments.size} * %T.size)", CPointer_COpaquePointerVar, GodotVariant)
             arguments.forEachIndexed { index, it ->
                 when {
                     it.isPrimitiveType() -> addStatement("args[$index] = alloc<%T>{ this.value = arg$index }.ptr", it.toVarType())

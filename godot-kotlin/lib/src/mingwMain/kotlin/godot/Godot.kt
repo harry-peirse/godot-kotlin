@@ -18,7 +18,7 @@ lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
 fun print(message: Any?) {
     memScoped {
-        api.godot_print!!(godot.api.godot_string_chars_to_utf8!!(message.toString().cstr.ptr).ptr)
+        api.godot_print!!(message.toString().toGString())
     }
 }
 

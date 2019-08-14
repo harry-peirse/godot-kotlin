@@ -2,7 +2,6 @@ package game
 
 import godot.Input_
 import godot.Sprite
-import godot.Variant
 
 class SimpleTest : Sprite() {
 
@@ -10,8 +9,6 @@ class SimpleTest : Sprite() {
     var lastDirection = 0
 
     override fun _process(delta: Float) {
-        val frameSpeed = delta * speed
-
         val newDirection = when {
             Input_.isActionPressed("move_left") -> 1
             Input_.isActionPressed("move_right") -> 2
@@ -19,6 +16,11 @@ class SimpleTest : Sprite() {
             Input_.isActionPressed("move_down") -> 4
             else -> 0
         }
+
+        val frameSpeed = delta * speed
+
+        godot.print("")
+        godot.print("1  $position")
 
         position.apply {
             when (newDirection) {
@@ -28,11 +30,13 @@ class SimpleTest : Sprite() {
                 4 -> y += frameSpeed
             }
         }
+        godot.print("2  $position")
 
         setPosition(position)
+        godot.print("3  $position")
 
         if (newDirection != lastDirection) {
-            emitSignal("direction_changed", Variant(position))
+            emitSignal("direction_changed", newDirection, position)
             lastDirection = newDirection
         }
     }

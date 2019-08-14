@@ -36,7 +36,9 @@ fun nativescriptInit(handle: godot.NativescriptHandle) {
             method("say_hello", SimpleTest::sayHello)
             method("whats_my_name", SimpleTest::whatsMyName)
             property("speed", SimpleTest::speed, 120f)
-            signal("direction_changed", "position" to Variant.Type.VECTOR2)
+            signal("direction_changed",
+                    "direction" to Variant.Type.INT,
+                    "position" to Variant.Type.VECTOR2)
         }
     } catch (e: Exception) {
         println(e.message)
