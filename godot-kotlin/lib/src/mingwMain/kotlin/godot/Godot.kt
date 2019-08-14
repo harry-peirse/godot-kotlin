@@ -22,12 +22,12 @@ fun print(message: Any?) {
     }
 }
 
-fun printWarning(description: String, function: String, file: String, line: Int) = memScoped {
-    godot.api.godot_print_warning!!(description.cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
+fun printWarning(description: Any?, function: String = "", file: String = "", line: Int = 0) = memScoped {
+    godot.api.godot_print_warning!!(description.toString().cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
 }
 
-fun printError(description: String, function: String, file: String, line: Int) = memScoped {
-    godot.api.godot_print_error!!(description.cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
+fun printError(description: Any?, function: String = "", file: String = "", line: Int = 0) = memScoped {
+    godot.api.godot_print_error!!(description.toString().cstr.ptr, function.cstr.ptr, file.cstr.ptr, line)
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)

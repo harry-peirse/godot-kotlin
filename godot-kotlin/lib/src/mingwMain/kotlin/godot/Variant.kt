@@ -22,10 +22,40 @@ fun String.toGString(): CPointer<godot_string> {
     return _string
 }
 
-fun CPointer<godot_dictionary>.toKMutableMap(): MutableMap<Variant, Any?> = TODO()
-fun MutableMap<Variant, Any?>.toGDictionary(): CPointer<godot_dictionary> = TODO()
-fun CPointer<godot_array>.toKArray(): Array<Variant> = TODO()
-fun Array<Variant>.toGArray(): CPointer<godot_array> = TODO()
+fun CPointer<godot_dictionary>.toKMutableMap(): MutableMap<Variant, Variant> = memScoped {
+    val keys = godot.api.godot_dictionary_keys!!(this@toKMutableMap).ptr.toKArray()
+    val map = mutableMapOf<Variant, Variant>()
+    keys.forEach {
+        map[it] = Variant(godot.api.godot_dictionary_get!!(this@toKMutableMap, it._raw))
+    }
+    return map
+}
+
+fun MutableMap<Variant, Variant>.toGDictionary(): CPointer<godot_dictionary> {
+    val _dictionary = alloc<godot_dictionary>(godot_dictionary.size)
+    godot.api.godot_dictionary_new!!(_dictionary)
+    forEach { (key, value) ->
+        api.godot_dictionary_set!!(_dictionary, key._raw, Variant.of(value)._raw)
+    }
+    return _dictionary
+}
+
+fun CPointer<godot_array>.toKArray(): Array<Variant> = memScoped {
+    val size = godot.api.godot_array_size!!(this@toKArray)
+    return Array(size) {
+        Variant(godot.api.godot_array_get!!(this@toKArray, it))
+    }
+}
+
+fun Array<Variant>.toGArray(): CPointer<godot_array> {
+    val _array = alloc<godot_array>(godot_array.size)
+    godot.api.godot_array_new!!(_array)
+    api.godot_array_resize!!(_array, size)
+    forEachIndexed { index, it ->
+        api.godot_array_set!!(_array, index, it._raw)
+    }
+    return _array
+}
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparable<Variant> {
@@ -213,7 +243,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         api.godot_variant_new_object!!(_raw, value._raw)
     }
 
-    constructor(value: MutableMap<Variant, Any?>) : this(alloc(godot_variant.size)) {
+    constructor(value: MutableMap<Variant, Variant>) : this(alloc(godot_variant.size)) {
         api.godot_variant_new_dictionary!!(_raw, value.toGDictionary())
     }
 
@@ -326,16 +356,11 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         return RID(api.godot_variant_as_rid!!(_raw))
     }
 
-    internal fun toObject(typeTag: UInt) = toObject(tagDB.types[typeTag]!!)
-
-    inline fun <reified T : Object> toObject() = toObject(T::class)
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Object> toObject(type: KClass<T>): T {
-        return Object.getFromVariant(_raw) as T
+    fun toObject(): Object {
+        return Object.getFromVariant(_raw)
     }
 
-    fun toMutableMap(): MutableMap<Variant, Any?> = memScoped {
+    fun toMutableMap(): MutableMap<Variant, Variant> = memScoped {
         return api.godot_variant_as_dictionary!!(_raw).ptr.toKMutableMap()
     }
 
@@ -388,58 +413,62 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     override fun equals(other: Any?): Boolean {
-        return if (other is Variant)
-            api.godot_variant_operator_equal!!(_raw, other._raw)
-        else false
+        return when (other) {
+            is Variant -> api.godot_variant_operator_equal!!(_raw, other._raw)
+            else -> false
+        }
     }
 
     override operator fun compareTo(other: Variant): Int {
-        return if (equals(other)) 0
-        else if (api.godot_variant_operator_less!!(_raw, other._raw)) -1
-        else 1
+        return when {
+            equals(other) -> 0
+            api.godot_variant_operator_less!!(_raw, other._raw) -> -1
+            else -> 1
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T : Any> to(type: KClass<T>): T {
-        if (type in assignableTypes) {
-            return when (type) {
-                Variant::class -> this as T
-                Boolean::class -> toBoolean() as T
-                Long::class -> toLong() as T
-                Int::class -> toInt() as T
-                Short::class -> toShort() as T
-                Char::class -> toChar() as T
-                Double::class -> toDouble() as T
-                Float::class -> toFloat() as T
-                ULong::class -> toULong() as T
-                UInt::class -> toUInt() as T
-                UShort::class -> toUShort() as T
-                String::class -> toString() as T
-                Vector2::class -> toVector2() as T
-                Rect2::class -> toRect2() as T
-                Vector3::class -> toVector3() as T
-                Plane::class -> toPlane() as T
-                AABB::class -> toAABB() as T
-                Quat::class -> toQuat() as T
-                Basis::class -> toBasis() as T
-                Transform2D::class -> toTransform2D() as T
-                Transform::class -> toTransform() as T
-                Color::class -> toColor() as T
-                NodePath::class -> toNodePath() as T
-                RID::class -> toRID() as T
-                Object::class -> toObject(type as KClass<out Object>) as T
-                MutableMap::class -> toMutableMap() as T
-                Array<Variant>::class -> toArray() as T
-                PoolByteArray::class -> toPoolByteArray() as T
-                PoolIntArray::class -> toPoolIntArray() as T
-                PoolFloatArray::class -> toPoolFloatArray() as T
-                PoolStringArray::class -> toPoolStringArray() as T
-                PoolVector2Array::class -> toPoolVector2Array() as T
-                PoolVector3Array::class -> toPoolVector3Array() as T
-                PoolColorArray::class -> toPoolColorArray() as T
-                else -> throw IllegalStateException("Shouldn't happen!")
+        return when (type) {
+            Variant::class -> this as T
+            Boolean::class -> toBoolean() as T
+            Long::class -> toLong() as T
+            Int::class -> toInt() as T
+            Short::class -> toShort() as T
+            Char::class -> toChar() as T
+            Double::class -> toDouble() as T
+            Float::class -> toFloat() as T
+            ULong::class -> toULong() as T
+            UInt::class -> toUInt() as T
+            UShort::class -> toUShort() as T
+            String::class -> toString() as T
+            Vector2::class -> toVector2() as T
+            Rect2::class -> toRect2() as T
+            Vector3::class -> toVector3() as T
+            Plane::class -> toPlane() as T
+            AABB::class -> toAABB() as T
+            Quat::class -> toQuat() as T
+            Basis::class -> toBasis() as T
+            Transform2D::class -> toTransform2D() as T
+            Transform::class -> toTransform() as T
+            Color::class -> toColor() as T
+            NodePath::class -> toNodePath() as T
+            RID::class -> toRID() as T
+            Object::class -> toObject() as T
+            MutableMap::class -> toMutableMap() as T
+            Array<Variant>::class -> toArray() as T
+            PoolByteArray::class -> toPoolByteArray() as T
+            PoolIntArray::class -> toPoolIntArray() as T
+            PoolFloatArray::class -> toPoolFloatArray() as T
+            PoolStringArray::class -> toPoolStringArray() as T
+            PoolVector2Array::class -> toPoolVector2Array() as T
+            PoolVector3Array::class -> toPoolVector3Array() as T
+            PoolColorArray::class -> toPoolColorArray() as T
+            else -> {
+                godot.printError("Cannot cast Variant to $type")
+                throw UnsupportedOperationException("Cannot cast Variant to $type")
             }
-        } else throw UnsupportedOperationException("Cannot cast Variant to $type")
+        }
     }
 
     fun destroy() {
@@ -449,27 +478,29 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     @UseExperimental(ExperimentalUnsignedTypes::class)
     companion object {
 
-        internal val assignableTypes = listOf(Variant::class, Char::class, Short::class, Long::class, Double::class, UShort::class, ULong::class, UInt::class, *Type.values())
-
         internal fun <T : Any?> of(value: T): Variant? {
-            return if(value == null) null
-            else of(value)
+            godot.print("B")
+            return if (value == null) {
+                print("Tried to create Variant from null")
+                null
+            } else of(value)
         }
 
         @Suppress("UNCHECKED_CAST")
         internal fun <T : Any> of(value: T): Variant {
+            print("Creating Variant of $value with type ${value::class}")
             return when (value) {
                 is Variant -> Variant(value)
                 is Boolean -> Variant(value)
-                is Long -> Variant(value)
-                is Int -> Variant(value)
                 is Short -> Variant(value)
+                is Int -> Variant(value)
+                is Long -> Variant(value)
                 is Char -> Variant(value)
-                is Double -> Variant(value)
                 is Float -> Variant(value)
-                is ULong -> Variant(value)
-                is UInt -> Variant(value)
+                is Double -> Variant(value)
                 is UShort -> Variant(value)
+                is UInt -> Variant(value)
+                is ULong -> Variant(value)
                 is String -> Variant(value)
                 is Vector2 -> Variant(value)
                 is Rect2 -> Variant(value)
@@ -484,7 +515,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
                 is NodePath -> Variant(value)
                 is RID -> Variant(value)
                 is Object -> Variant(value)
-                is MutableMap<*, *> -> Variant(value as MutableMap<Variant, Any?>)
+                is MutableMap<*, *> -> Variant(value as MutableMap<Variant, Variant>)
                 is Array<*> -> Variant(value as Array<Variant>)
                 is PoolByteArray -> Variant(value)
                 is PoolIntArray -> Variant(value)
@@ -493,7 +524,10 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
                 is PoolVector2Array -> Variant(value)
                 is PoolVector3Array -> Variant(value)
                 is PoolColorArray -> Variant(value)
-                else -> throw UnsupportedOperationException("Cannot create Variant of type ${value::class}")
+                else -> {
+                    godot.printError("Cannot create Variant of type ${value::class}")
+                    throw UnsupportedOperationException("Cannot create Variant of type ${value::class}")
+                }
             }
         }
     }

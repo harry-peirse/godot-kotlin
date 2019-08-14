@@ -1,12 +1,10 @@
 package godot.generator
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import kotlin.Boolean
-import kotlin.Float
-import kotlin.Int
-import kotlin.UInt
-import kotlin.Unit
+import com.squareup.kotlinpoet.TypeName
 
 val _Int = ClassName("kotlin", "Int")
 val _UInt = ClassName("kotlin", "UInt")
@@ -17,7 +15,6 @@ val _Unit = ClassName("kotlin", "Unit")
 val UseExperimental = ClassName("kotlin", "UseExperimental")
 val ThreadLocal = ClassName("kotlin.native", "ThreadLocal")
 val HashMap = ClassName("kotlin.collections", "HashMap")
-val CPointed = ClassName("kotlinx.cinterop", "CPointed")
 val CPointer = ClassName("kotlinx.cinterop", "CPointer")
 val CPointerVar = ClassName("kotlinx.cinterop", "CPointerVar")
 val CPointerVarOf = ClassName("kotlinx.cinterop", "CPointerVarOf")
@@ -29,10 +26,8 @@ val COpaquePointerVar = ClassName("kotlinx.cinterop", "COpaquePointerVar")
 val GodotMethodBind = ClassName(INTERNAL_PACKAGE, "godot_method_bind")
 val GodotVariant = ClassName(INTERNAL_PACKAGE, "godot_variant")
 val Variant = ClassName(PACKAGE, "Variant")
-val CoreType = ClassName(PACKAGE, "CoreType").parameterizedBy(WildcardTypeName.producerOf(ClassName("kotlinx.cinterop", "CPointed")))
 val CPointer_GodotVariant = CPointer.parameterizedBy(GodotVariant)
 val CPointer_COpaquePointerVar = CPointer.parameterizedBy(COpaquePointerVar)
-val CPointer_COpaquePointer = CPointer.parameterizedBy(COpaquePointer)
 val CPointer_CPointerVar_GodotVariant = CPointer.parameterizedBy(CPointerVar.parameterizedBy(GodotVariant))
 val CPointer_GodotMethodBind = CPointer.parameterizedBy(GodotMethodBind)
 val CFunction = ClassName("kotlinx.cinterop", "CFunction")
@@ -43,13 +38,12 @@ val Array = ClassName("kotlin", "Array")
 val MutableMap = ClassName("kotlin.collections", "MutableMap")
 
 val Array_Variant = Array.parameterizedBy(Variant)
-val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Any::class.asClassName().copy(true))
+val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Variant)
 
 val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 
 fun ClassName.isPrimitiveType(): Boolean = this in listOf(_Int, _UInt, _Float, _Boolean, _Unit)
 fun ClassName.isCoreType(): Boolean = (packageName == PACKAGE || packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
-fun ClassName.isCoreEnumType(): Boolean = (packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
 fun ClassName.isEnumType(): Boolean = (packageName == PACKAGE) && simpleName.contains(".")
 fun ClassName.isUnit(): Boolean = this == _Unit
 fun ClassName.toVarType(): ClassName = when {
@@ -103,6 +97,7 @@ fun String.toClassName(): ClassName = when (this) {
 }
 
 fun String.sanitisedType() = removePrefix("enum.").replace("::", ".").typeOverride()
+
 fun String.sanitisedName() = removePrefix("enum.").replace("::", "").toCamelCase().escape()
 
 fun String.isPrimitiveType(): Boolean = toClassName().isPrimitiveType()
