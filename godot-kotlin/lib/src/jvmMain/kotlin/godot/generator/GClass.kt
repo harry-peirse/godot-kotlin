@@ -3,7 +3,7 @@ package godot.generator
 import com.squareup.kotlinpoet.*
 
 data class GClass(
-        val name: String,
+        var name: String,
         var baseClass: String,
         val singleton: Boolean,
         val instanciable: Boolean,
@@ -34,10 +34,8 @@ data class GClass(
 
     fun parse(content: List<GClass>, collector: SignatureCollector): FileSpec {
 
-        if (baseClass.isNullOrEmpty()) {
+        if (baseClass.isEmpty()) {
             println("Discovered root class: $name")
-        } else {
-//            println("$name::class -> $name.getFromVariant(_raw)")
         }
 
         if (name == "GlobalConstants") {

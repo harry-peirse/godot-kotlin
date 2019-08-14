@@ -39,6 +39,7 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
 }
 
 internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
+    godot.print("_constructor")
     val variant = Variant(instance!!.reinterpret())
     val boundClass = methodData?.asStableRef<BoundClass<*, *>>()?.get()!!
     val obj = boundClass.producer()

@@ -59,7 +59,7 @@ fun ClassName.toVarType(): ClassName = when {
     else -> this
 }
 
-fun ClassName.parameterized(): TypeName = when(this) {
+fun ClassName.parameterized(): TypeName = when (this) {
     Array -> Array_Variant
     MutableMap -> MutableMap_Variant_Any
     else -> this

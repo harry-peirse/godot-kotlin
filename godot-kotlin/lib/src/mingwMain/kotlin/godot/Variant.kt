@@ -425,7 +425,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
                 Color::class -> toColor() as T
                 NodePath::class -> toNodePath() as T
                 RID::class -> toRID() as T
-                Object::class -> toObject() as T
+//                Object::class -> toObject(type) as T
                 MutableMap::class -> toMutableMap() as T
                 Array<Variant>::class -> toArray() as T
                 PoolByteArray::class -> toPoolByteArray() as T
