@@ -35,7 +35,7 @@ data class GMethod(
                                     else it.sanitisedName
                                 } +
                                 "${if (hasVarargs) ", *varargs" else ""})" +
-                                (if (returnTypeIsEnum) ")" else ""))
+                                (if (returnTypeIsEnum) ")" else "") + " as %T", sanitisedReturnType.toClassName().parameterized())
                     } else {
                         addStatement((if (returnTypeIsEnum) "$sanitisedReturnType.byValue(" else "") +
                                 "${signature.methodName()}(mb.$sanitisedName!!, " +

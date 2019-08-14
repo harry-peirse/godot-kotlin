@@ -1,10 +1,10 @@
 package game
 
-import godot.Input
+import godot.Input_
+import godot.Sprite
 import godot.Variant
-import godot.internal.godot_variant_type
 
-class SimpleTest : godot.Sprite() {
+class SimpleTest : Sprite() {
 
     var speed = 120f
     var lastDirection = 0
@@ -14,19 +14,19 @@ class SimpleTest : godot.Sprite() {
         val newDirection: Int
         val position = position.apply {
             when {
-                Input().isActionPressed(GodotString("move_left")) -> {
+                Input_.isActionPressed("move_left") -> {
                     newDirection = 1
                     x -= frameSpeed
                 }
-                Input().isActionPressed(GodotString("move_right")) -> {
+                Input_.isActionPressed("move_right") -> {
                     newDirection = 2
                     x += frameSpeed
                 }
-                Input().isActionPressed(GodotString("move_up")) -> {
+                Input_.isActionPressed("move_up") -> {
                     newDirection = 3
                     y -= frameSpeed
                 }
-                Input().isActionPressed(GodotString("move_down")) -> {
+                Input_.isActionPressed("move_down") -> {
                     newDirection = 4
                     y += frameSpeed
                 }
@@ -37,7 +37,7 @@ class SimpleTest : godot.Sprite() {
         setPosition(position)
 
         if (newDirection != lastDirection) {
-            emitSignal(GodotString("direction_changed"), Variant(position))
+            emitSignal("direction_changed", Variant(position))
             lastDirection = newDirection
         }
     }
@@ -48,18 +48,5 @@ class SimpleTest : godot.Sprite() {
 
     fun whatsMyName(): String {
         return "Bobby Brown"
-    }
-
-    companion object : godot.GodotClass {
-        override val type = SimpleTest::class
-        override val baseType = godot.Sprite::class
-        override fun new() = SimpleTest()
-        override fun registerMethods() {
-            godot.registerMethod("_process", SimpleTest::_process)
-            godot.registerMethod("say_hello", SimpleTest::sayHello)
-            godot.registerMethod("whats_my_name", SimpleTest::whatsMyName)
-            godot.registerProperty("speed", SimpleTest::speed, 120f)
-            godot.registerSignal<SimpleTest>("direction_changed", "position" to godot_variant_type.GODOT_VARIANT_TYPE_VECTOR2)
-        }
     }
 }

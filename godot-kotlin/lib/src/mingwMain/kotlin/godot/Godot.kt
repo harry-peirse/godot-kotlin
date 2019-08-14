@@ -88,8 +88,8 @@ fun nativescriptTerminate(handle: NativescriptHandle) {
 
 @Suppress("UNUSED_PARAMETER")
 internal fun wrapperCreate(data: COpaquePointer?, typeTag: COpaquePointer?, instance: COpaquePointer?): COpaquePointer? {
-    val variant = Variant(instance!!.reinterpret())
-    val obj: Object = variant.toObject(Variant(typeTag!!.reinterpret()).toUInt())
+    val obj: Object = tagDB.producers[Variant(typeTag!!.reinterpret()).toUInt()]!!()
+    obj._raw = instance!!.reinterpret()
     obj._init()
     return obj._stableRef.asCPointer()
 }
@@ -102,15 +102,13 @@ internal fun wrapperDestroy(data: COpaquePointer?, wrapper: COpaquePointer?) {
 fun nativeScriptInit(handle: NativescriptHandle) {
     nativescriptHandle = handle
 
-    memScoped {
-        languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(cValue {
-            alloc_instance_binding_data = staticCFunction(::wrapperCreate)
-            free_instance_binding_data = staticCFunction(::wrapperDestroy)
-        })
+    languageIndex = nativescript11Api.godot_nativescript_register_instance_binding_data_functions!!(cValue {
+        alloc_instance_binding_data = staticCFunction(::wrapperCreate)
+        free_instance_binding_data = staticCFunction(::wrapperDestroy)
+    })
 
-        _registerTypes()
-        _initMethodBindings()
-    }
+    _registerTypes()
+    _initMethodBindings()
 }
 
 internal lateinit var nativescriptHandle: COpaquePointer

@@ -6,16 +6,12 @@ import godot.internal.godot_variant
 import kotlinx.cinterop.*
 import kotlin.reflect.KClass
 
-class ClassBinder
-
 @UseExperimental(ExperimentalUnsignedTypes::class)
-class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>, val producer: () -> T, val binder: ClassBinder.() -> Unit) {
+class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>, val producer: () -> T, val binder: () -> Unit) {
     val typeName: String
         get() = type.simpleName!!
     val baseTypeName: String
         get() = baseType.simpleName!!
-    val typeTag: UInt
-        get() = typeName.hashCode().toUInt()
 
     fun new(): T {
         val script = NativeScript.new()
@@ -45,7 +41,9 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
 internal fun _constructor(instance: COpaquePointer?, methodData: COpaquePointer?): COpaquePointer? {
     val variant = Variant(instance!!.reinterpret())
     val boundClass = methodData?.asStableRef<BoundClass<*, *>>()?.get()!!
-    val obj = variant.toObject(boundClass.typeTag)
+    val obj = boundClass.producer()
+    obj._raw = variant._raw
+    obj._init()
     return obj._stableRef.asCPointer()
 }
 
@@ -60,7 +58,7 @@ fun registerClass(boundClass: BoundClass<*, *>) {
         print("Registering class ${boundClass.typeName} : ${boundClass.baseTypeName}")
 
         nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, boundClass.typeName.cstr.ptr, boundClass.baseTypeName.cstr.ptr, create, destroy)
-        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, alloc<UIntVar> { value = boundClass.typeTag }.ptr)
-        boundClass.binder(ClassBinder())
+        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, alloc<UIntVar> { value = boundClass.type.tag() }.ptr)
+        boundClass.binder()
     }
 }

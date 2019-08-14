@@ -13,26 +13,24 @@ class BoundMethod(val method: Function<*>,
 
     @Suppress("UNCHECKED_CAST")
     operator fun invoke(entity: Object, vararg arguments: Variant): Variant? {
-        val typedArgs = argumentTypes.mapIndexed { index, it -> arguments[index].cast(it) }
-        return Variant.from(
-                when (typedArgs.size) {
-                    0 -> (method as Function1<Object, *>).invoke(entity)
-                    1 -> (method as Function2<Object, Any?, *>).invoke(entity, typedArgs[0])
-                    2 -> (method as Function3<Object, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1])
-                    3 -> (method as Function4<Object, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2])
-                    4 -> (method as Function5<Object, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3])
-                    5 -> (method as Function6<Object, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4])
-                    6 -> (method as Function7<Object, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5])
-                    7 -> (method as Function8<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6])
-                    8 -> (method as Function9<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7])
-                    9 -> (method as Function10<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8])
-                    10 -> (method as Function11<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9])
-                    11 -> (method as Function12<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10])
-                    12 -> (method as Function13<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11])
-                    13 -> (method as Function14<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11], typedArgs[12])
-                    else -> throw IllegalStateException("Unsupported number of arguments")
-                }
-        )
+        val typedArgs = argumentTypes.mapIndexed { index, it -> arguments[index].to(it) }
+        return Variant.of(when (typedArgs.size) {
+            0 -> (method as Function1<Object, *>).invoke(entity)
+            1 -> (method as Function2<Object, Any?, *>).invoke(entity, typedArgs[0])
+            2 -> (method as Function3<Object, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1])
+            3 -> (method as Function4<Object, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2])
+            4 -> (method as Function5<Object, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3])
+            5 -> (method as Function6<Object, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4])
+            6 -> (method as Function7<Object, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5])
+            7 -> (method as Function8<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6])
+            8 -> (method as Function9<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7])
+            9 -> (method as Function10<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8])
+            10 -> (method as Function11<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9])
+            11 -> (method as Function12<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10])
+            12 -> (method as Function13<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11])
+            13 -> (method as Function14<Object, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, Any?, *>).invoke(entity, typedArgs[0], typedArgs[1], typedArgs[2], typedArgs[3], typedArgs[4], typedArgs[5], typedArgs[6], typedArgs[7], typedArgs[8], typedArgs[9], typedArgs[10], typedArgs[11], typedArgs[12])
+            else -> null
+        }!!)
     }
 }
 
@@ -45,9 +43,9 @@ internal fun methodWrapper(godotObject: COpaquePointer?,
 ): CValue<godot_variant> {
     val obj = userData!!.asStableRef<Object>().get()
     val boundMethod = methodData!!.asStableRef<BoundMethod>().get()
-    val arguments: List<Variant> = (0..numArgs).map { Variant.from(args!![it]!!) }
+    val arguments: List<Variant> = (0..numArgs).map { Variant(args!![it]!!) }
     val result: Variant? = boundMethod(obj, *arguments.toTypedArray())
-    return result?._variant?.pointed?.readValue() ?: cValue()
+    return result?._raw?.pointed?.readValue() ?: cValue()
 }
 
 internal fun destroyFunctionWrapper(methodData: COpaquePointer?) {

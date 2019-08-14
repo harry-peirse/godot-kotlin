@@ -21,6 +21,7 @@ val HashMap = ClassName("kotlin.collections", "HashMap")
 val CPointed = ClassName("kotlinx.cinterop", "CPointed")
 val CPointer = ClassName("kotlinx.cinterop", "CPointer")
 val CPointerVar = ClassName("kotlinx.cinterop", "CPointerVar")
+val CPointerVarOf = ClassName("kotlinx.cinterop", "CPointerVarOf")
 val StableRef = ClassName("kotlinx.cinterop", "StableRef")
 val Object = ClassName(PACKAGE, "Object")
 val StableRef_Object = StableRef.parameterizedBy(Object)
@@ -43,7 +44,7 @@ val Array = ClassName("kotlin", "Array")
 val MutableMap = ClassName("kotlin.collections", "MutableMap")
 
 val Array_Variant = Array.parameterizedBy(Variant)
-val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Any::class.asClassName())
+val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Any::class.asClassName().copy(true))
 
 val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 

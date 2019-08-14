@@ -15,7 +15,7 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
 
     @Suppress("UNCHECKED_CAST")
     fun getter(entity: Object): Variant? {
-        return Variant((property as KMutableProperty1<Object, Any>).get(entity))
+        return Variant.of((property as KMutableProperty1<Object, Any>).get(entity))
     }
 }
 
