@@ -24,6 +24,7 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun getFromVariant(_variant: CPointer<godot_variant>): T {
         return godot.nativescriptApi.godot_nativescript_get_userdata!!(_variant)?.asStableRef<Object>()?.get()!! as T
     }

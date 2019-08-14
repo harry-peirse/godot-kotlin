@@ -18,35 +18,26 @@ data class GMethod(
 
     val returnTypeIsEnum: Boolean get() = returnType.startsWith("enum.")
     val sanitisedName: String get() = name.sanitisedName()
-    val sanitisedReturnType: String get() = returnType.sanitisedType()
+    val sanitisedReturnType: String get() = returnType.sanitisedType().removePrefix("$sanitisedName.")
 
     fun functionBody(signature: Signature) = CodeBlock.builder()
             .apply {
                 if (name == "free") {
                     addStatement("godot.api.godot_object_destroy!!(_raw)")
                 } else {
-                    if(returnType != "void") {
-                        addStatement("return " +
-                                (if (returnTypeIsEnum) "$sanitisedReturnType.byValue(" else "") +
-                                "${signature.methodName()}(mb.$sanitisedName!!, " +
-                                "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
-                                arguments.joinToString(", ") {
-                                    if (it.sanitisedType.toClassName().isEnumType()) "${it.sanitisedName}.value"
-                                    else it.sanitisedName
-                                } +
-                                "${if (hasVarargs) ", *varargs" else ""})" +
-                                (if (returnTypeIsEnum) ")" else "") + " as %T", sanitisedReturnType.toClassName().parameterized())
-                    } else {
-                        addStatement((if (returnTypeIsEnum) "$sanitisedReturnType.byValue(" else "") +
-                                "${signature.methodName()}(mb.$sanitisedName!!, " +
-                                "_raw${if (arguments.isNotEmpty()) ", " else ""}" +
-                                arguments.joinToString(", ") {
-                                    if (it.sanitisedType.toClassName().isEnumType()) "${it.sanitisedName}.value"
-                                    else it.sanitisedName
-                                } +
-                                "${if (hasVarargs) ", *varargs" else ""})" +
-                                (if (returnTypeIsEnum) ")" else ""))
-                    }
+                    val sb = StringBuilder()
+                    if (returnType != "void") sb.append("return ")
+                    if (returnTypeIsEnum) sb.append("$sanitisedReturnType.byValue(")
+                    sb.append("${signature.methodName()}(mb.$sanitisedName!!, _raw")
+                    if (arguments.isNotEmpty()) sb.append(", ")
+                    sb.append(arguments.joinToString(", ") { it.sanitisedName + if (it.sanitisedType.toClassName().isEnumType()) ".value" else "" })
+                    if (hasVarargs) sb.append(", *varargs")
+                    sb.append(")")
+                    if (returnTypeIsEnum) sb.append(")")
+                    if (returnType.sanitisedType().isClassType() && !returnTypeIsEnum && returnType != "Object") sb.append(" as %T")
+                    val statement = sb.toString()
+                    if (returnType.sanitisedType().isClassType() && !returnTypeIsEnum && returnType != "Object") addStatement(statement, sanitisedReturnType.toClassName().parameterized())
+                    else addStatement(statement)
                 }
             }
             .build()
@@ -83,9 +74,6 @@ data class GMethod(
                                 .build())
                     }
                 }
-                .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "UseExperimental"))
-                        .addMember("ExperimentalUnsignedTypes::class")
-                        .build())
                 .addCode(functionBody(signature))
                 .returns(sanitisedReturnType.toClassName().parameterized())
                 .build()

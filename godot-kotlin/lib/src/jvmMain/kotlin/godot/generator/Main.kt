@@ -51,6 +51,12 @@ fun main() {
             .addFunction(FunSpec.builder("_registerTypes")
                     .addModifiers(KModifier.INTERNAL)
                     .addAnnotation(UseExperimentalUnsignedTypes)
+                    .addCode(CodeBlock.builder()
+                            .apply {
+                                content.filter { it.name != "GlobalConstants" }
+                                        .map { add(it.parseRegisterTypesCall()) }
+                            }
+                            .build())
                     .build())
             .addFunction(FunSpec.builder("_initMethodBindings")
                     .addModifiers(KModifier.INTERNAL)

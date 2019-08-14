@@ -21,6 +21,7 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
 
 @Suppress("UNUSED_PARAMETER")
 internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?): CValue<godot_variant> {
+    godot.print("getterWrapper")
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
     return wrapper.getter(obj)?._raw?.pointed?.readValue() ?: cValue()
@@ -28,6 +29,7 @@ internal fun getterWrapper(godotObject: COpaquePointer?, methodData: COpaquePoin
 
 @Suppress("UNUSED_PARAMETER")
 internal fun setterWrapper(godotObject: COpaquePointer?, methodData: COpaquePointer?, userData: COpaquePointer?, value: CPointer<godot_variant>?) {
+    godot.print("setterWrapper")
     val obj = userData!!.asStableRef<Object>().get()
     val wrapper = methodData!!.asStableRef<BoundProperty>().get()
     wrapper.setter(obj, Variant(value!!))
@@ -56,7 +58,7 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
             set_func = staticCFunction(::setterWrapper)
         }
 
-        val variant: Variant? = null //Variant(defaultValue)
+        val variant = Variant.of(defaultValue)
 
         val attr = cValue<godot_property_attributes> {
             type = (variant?.getType() ?: Variant.Type.NIL).ordinal

@@ -40,14 +40,14 @@ data class Signature(
                     .build())
             .build()
 
-    fun methodName() = "_icall__${returnType.simpleName}__${arguments.joinToString("_") { it.simpleName }}"
+    fun methodName() = "_icall__${returnType.simpleName}${if(arguments.isNotEmpty()) "__" else ""}${arguments.joinToString("_") { it.simpleName }}"
 
     override fun compareTo(other: Signature) = methodName().compareTo(other.methodName())
 
     private fun argumentDeclarations(arguments: List<ClassName>, hasVarargs: Boolean) = CodeBlock.builder().apply {
         if (hasVarargs) {
             addStatement("val args: %T = allocArray((${arguments.size} + varargs.size) * %T.size)", CPointer_CPointerVar_GodotVariant, CPointerVarOf)
-            arguments.forEachIndexed { index, it ->
+            arguments.forEachIndexed { index, _ ->
                 when {
                     else -> addStatement("args[$index] = Variant(arg$index)._raw")
                 }
@@ -98,8 +98,8 @@ data class Signature(
 
 class SignatureCollector {
 
-    var mostArgs = 0
-    val list = HashSet<Signature>()
+    private var mostArgs = 0
+    private val list = HashSet<Signature>()
 
     fun collect(method: GMethod): Signature {
         if (method.arguments.size + (if (method.hasVarargs) 1 else 0) > mostArgs) {
@@ -108,13 +108,14 @@ class SignatureCollector {
 
         val signature = Signature(
                 when {
-                    method.returnTypeIsEnum -> UInt
+                    method.returnTypeIsEnum -> _UInt
                     method.sanitisedReturnType.isClassType() -> Object
+                    method.sanitisedReturnType == "Unit" -> _Unit
                     else -> method.sanitisedReturnType.toClassName()
                 },
                 method.arguments.map {
                     when {
-                        it.isEnum -> UInt
+                        it.isEnum -> _UInt
                         it.sanitisedType.isClassType() -> Object
                         else -> it.sanitisedType.toClassName()
                     }
@@ -123,9 +124,11 @@ class SignatureCollector {
 
         synchronized(list) {
             list.add(signature)
-            if (signature.varargs) list.remove(signature.copy(varargs = false))
-            else if (list.contains(signature.copy(varargs = true))) list.remove(signature)
-            else Unit
+            when {
+                signature.varargs -> list.remove(signature.copy(varargs = false))
+                list.contains(signature.copy(varargs = true)) -> list.remove(signature)
+                else -> Unit
+            }
         }
 
         return signature

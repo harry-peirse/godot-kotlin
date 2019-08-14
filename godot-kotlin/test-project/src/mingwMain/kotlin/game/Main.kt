@@ -32,7 +32,7 @@ fun nativescriptInit(handle: godot.NativescriptHandle) {
         godot.nativeScriptInit(handle)
         godot.print("nativescriptInit")
 
-        godot.registerClass(BoundClass(SimpleTest::class, Sprite::class, { -> SimpleTest()}) {
+        godot.registerClass(BoundClass(SimpleTest::class, Sprite::class, { SimpleTest() }) {
             godot.registerMethod("_process", SimpleTest::_process)
             godot.registerMethod("say_hello", SimpleTest::sayHello)
             godot.registerMethod("whats_my_name", SimpleTest::whatsMyName)

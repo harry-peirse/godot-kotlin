@@ -13,6 +13,7 @@ class BoundMethod(val method: Function<*>,
 
     @Suppress("UNCHECKED_CAST")
     operator fun invoke(entity: Object, vararg arguments: Variant): Variant? {
+        godot.print("BoundMethod.invoke")
         val typedArgs = argumentTypes.mapIndexed { index, it -> arguments[index].to(it) }
         return Variant.of(when (typedArgs.size) {
             0 -> (method as Function1<Object, *>).invoke(entity)
@@ -41,14 +42,22 @@ internal fun methodWrapper(godotObject: COpaquePointer?,
                            numArgs: Int,
                            args: CPointer<CPointerVar<godot_variant>>?
 ): CValue<godot_variant> {
+    godot.print("methodWrapper 1)")
     val obj = userData!!.asStableRef<Object>().get()
+    godot.print("methodWrapper 2) $obj")
     val boundMethod = methodData!!.asStableRef<BoundMethod>().get()
-    val arguments: List<Variant> = (0..numArgs).map { Variant(args!![it]!!) }
+    godot.print("methodWrapper 3) $boundMethod")
+    val arguments: List<Variant> = (0 until numArgs).map { Variant(args!![it]!!) }
+    godot.print("methodWrapper 4) $arguments")
     val result: Variant? = boundMethod(obj, *arguments.toTypedArray())
-    return result?._raw?.pointed?.readValue() ?: cValue()
+    godot.print("methodWrapper 5) $result")
+    val ret = result?._raw?.pointed?.readValue() ?: cValue()
+    godot.print("methodWrapper 6) $ret")
+    return ret
 }
 
-internal fun destroyFunctionWrapper(methodData: COpaquePointer?) {
+internal fun destroyMethodWrapper(methodData: COpaquePointer?) {
+    godot.print("destroyMethodWrapper")
     methodData!!.asStableRef<BoundMethod>().dispose()
 }
 
@@ -58,7 +67,7 @@ fun registerMethod(className: String, methodName: String, boundMethod: BoundMeth
     memScoped {
         val method = cValue<godot_instance_method> {
             method_data = StableRef.create(boundMethod).asCPointer()
-            free_func = staticCFunction(::destroyFunctionWrapper)
+            free_func = staticCFunction(::destroyMethodWrapper)
             method = staticCFunction(::methodWrapper)
         }
         val attr = cValue<godot_method_attributes> {

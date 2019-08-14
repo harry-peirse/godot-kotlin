@@ -330,6 +330,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
 
     inline fun <reified T : Object> toObject() = toObject(T::class)
 
+    @Suppress("UNCHECKED_CAST")
     fun <T : Object> toObject(type: KClass<T>): T {
         return Object.getFromVariant(_raw) as T
     }
@@ -398,6 +399,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         else 1
     }
 
+    @Suppress("UNCHECKED_CAST")
     internal fun <T : Any> to(type: KClass<T>): T {
         if (type in assignableTypes) {
             return when (type) {
@@ -425,7 +427,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
                 Color::class -> toColor() as T
                 NodePath::class -> toNodePath() as T
                 RID::class -> toRID() as T
-//                Object::class -> toObject(type) as T
+                Object::class -> toObject(type as KClass<out Object>) as T
                 MutableMap::class -> toMutableMap() as T
                 Array<Variant>::class -> toArray() as T
                 PoolByteArray::class -> toPoolByteArray() as T
@@ -449,6 +451,12 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
 
         internal val assignableTypes = listOf(Variant::class, Char::class, Short::class, Long::class, Double::class, UShort::class, ULong::class, UInt::class, *Type.values())
 
+        internal fun <T : Any?> of(value: T): Variant? {
+            return if(value == null) null
+            else of(value)
+        }
+
+        @Suppress("UNCHECKED_CAST")
         internal fun <T : Any> of(value: T): Variant {
             return when (value) {
                 is Variant -> Variant(value)

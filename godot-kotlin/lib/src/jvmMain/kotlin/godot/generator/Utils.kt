@@ -8,12 +8,11 @@ import kotlin.Int
 import kotlin.UInt
 import kotlin.Unit
 
-val Int = Int::class.asClassName()
-@UseExperimental(ExperimentalUnsignedTypes::class)
-val UInt = UInt::class.asClassName()
-val Float = Float::class.asClassName()
-val Boolean = Boolean::class.asClassName()
-val Unit = Unit::class.asClassName()
+val _Int = ClassName("kotlin", "Int")
+val _UInt = ClassName("kotlin", "UInt")
+val _Float = ClassName("kotlin", "Float")
+val _Boolean = ClassName("kotlin", "Boolean")
+val _Unit = ClassName("kotlin", "Unit")
 
 val UseExperimental = ClassName("kotlin", "UseExperimental")
 val ThreadLocal = ClassName("kotlin.native", "ThreadLocal")
@@ -48,11 +47,11 @@ val MutableMap_Variant_Any = MutableMap.parameterizedBy(Variant, Any::class.asCl
 
 val UseExperimentalUnsignedTypes = AnnotationSpec.builder(UseExperimental).addMember("ExperimentalUnsignedTypes::class").build()
 
-fun ClassName.isPrimitiveType(): Boolean = packageName == "kotlin" && simpleName in listOf("Short", "Int", "Long", "Float", "Double", "UShort", "UInt", "ULong", "UFloat", "UDouble", "Boolean", "Byte")
+fun ClassName.isPrimitiveType(): Boolean = this in listOf(_Int, _UInt, _Float, _Boolean, _Unit)
 fun ClassName.isCoreType(): Boolean = (packageName == PACKAGE || packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
 fun ClassName.isCoreEnumType(): Boolean = (packageName == INTERNAL_PACKAGE) && simpleName.isCoreType()
 fun ClassName.isEnumType(): Boolean = (packageName == PACKAGE) && simpleName.contains(".")
-fun ClassName.isUnit(): Boolean = this == godot.generator.Unit
+fun ClassName.isUnit(): Boolean = this == _Unit
 fun ClassName.toVarType(): ClassName = when {
     isPrimitiveType() -> ClassName("kotlinx.cinterop", "${simpleName}Var")
     this == String -> ClassName("kotlinx.cinterop", "ByteVar")
@@ -91,11 +90,11 @@ fun String.typeOverride(): String = when (this) {
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 fun String.toClassName(): ClassName = when (this) {
-    "Int" -> godot.generator.Int
-    "UInt" -> godot.generator.UInt
-    "Float" -> godot.generator.Float
-    "Boolean" -> godot.generator.Boolean
-    "Unit" -> godot.generator.Unit
+    "Int" -> _Int
+    "UInt" -> _UInt
+    "Float" -> _Float
+    "Boolean" -> _Boolean
+    "Unit" -> _Unit
     "godot_error" -> ClassName(INTERNAL_PACKAGE, this)
     "String" -> String
     "Array" -> Array

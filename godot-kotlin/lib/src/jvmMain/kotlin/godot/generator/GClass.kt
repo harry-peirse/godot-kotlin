@@ -13,18 +13,21 @@ data class GClass(
         val properties: MutableList<GProperty>,
         val enums: List<GEnum>
 ) {
-
     var methodMap: MutableMap<String, GMethod> = HashMap()
 
     fun parseBindingCall() = CodeBlock.builder()
             .addStatement("$name.initMethodBindings()")
             .build()
 
-    fun parseGlobalConstants() = FileSpec.builder(PACKAGE, name)
+    fun parseRegisterTypesCall() = CodeBlock.builder()
+            .addStatement("tagDB.registerGlobalType(\"$name\", $name::class, ${if (baseClass.isEmpty()) name else baseClass}::class) { $name() }")
+            .build()
+
+    private fun parseGlobalConstants() = FileSpec.builder(PACKAGE, name)
             .addType(TypeSpec.objectBuilder(name)
                     .addAnnotation(AnnotationSpec.builder(ThreadLocal).build())
                     .addProperties(constants.map { (key, value) ->
-                        PropertySpec.builder(key, Int)
+                        PropertySpec.builder(key, _Int)
                                 .addModifiers(KModifier.PUBLIC, KModifier.CONST)
                                 .initializer(value.toString())
                                 .build()
@@ -91,10 +94,10 @@ data class GClass(
                 ).build()
     }
 
-    fun buildCore(builder: TypeSpec.Builder) = builder
+    private fun buildCore(builder: TypeSpec.Builder) = builder
             .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.native", "ThreadLocal")).build())
             .addProperties(constants.map { (key, value) ->
-                PropertySpec.builder(key, Int)
+                PropertySpec.builder(key, _Int)
                         .addModifiers(KModifier.PUBLIC, KModifier.CONST)
                         .initializer(value.toString())
                         .build()
