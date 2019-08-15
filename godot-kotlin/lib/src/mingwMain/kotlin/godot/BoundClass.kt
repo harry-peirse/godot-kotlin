@@ -21,7 +21,10 @@ class BoundClass<T : S, S : Object>(val type: KClass<T>, val baseType: KClass<S>
 
         memScoped {
             script.setClassName(typeName)
-            return getFromVariant(Variant(script.new())._raw)
+            val variant = Variant(script.new())
+            val result = getFromVariant(variant._raw)
+            variant.dispose()
+            return result
         }
     }
 
@@ -132,9 +135,12 @@ fun registerClass(boundClass: BoundClass<*, *>) {
 
         print("Registering class ${boundClass.typeName} : ${boundClass.baseTypeName}")
 
+        val tag = Variant(boundClass.type.tag())
+
         nativescriptApi.godot_nativescript_register_class!!(nativescriptHandle, boundClass.typeName.cstr.ptr, boundClass.baseTypeName.cstr.ptr, create, destroy)
-        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr, Variant(boundClass.type.tag())._raw)
+        nativescript11Api.godot_nativescript_set_type_tag!!(nativescriptHandle, boundClass.typeName.cstr.ptr,tag._raw)
         tagDB.registerType(boundClass.type, boundClass.baseType, boundClass.producer)
         boundClass.bind()
+        tag.dispose()
     }
 }

@@ -9,8 +9,10 @@ class BoundProperty(val property: KMutableProperty1<out Object, *>,
                     val type: KClass<out Any>) {
 
     @Suppress("UNCHECKED_CAST")
-    fun setter(entity: Object, value: Variant) {
-        (property as KMutableProperty1<Object, Any>).set(entity, value.to(type))
+    fun setter(entity: Object, variant: Variant) {
+        val value = variant.to(type)
+        (property as KMutableProperty1<Object, Any>).set(entity, value)
+        variant.dispose()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -68,6 +70,8 @@ fun registerProperty(className: String, propertyName: String, defaultValue: Any?
         }
 
         nativescriptApi.godot_nativescript_register_property!!(nativescriptHandle, className.cstr.ptr, propertyName.cstr.ptr, attr.ptr, setter, getter)
+
+        variant?.dispose()
     }
 }
 

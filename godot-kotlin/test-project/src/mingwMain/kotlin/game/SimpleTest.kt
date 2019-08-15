@@ -2,7 +2,6 @@ package game
 
 import godot.Input_
 import godot.Sprite
-import godot.Vector2
 
 class SimpleTest : Sprite() {
 
@@ -32,6 +31,8 @@ class SimpleTest : Sprite() {
             emitSignal("direction_changed", newDirection, position)
             lastDirection = newDirection
         }
+
+        position.dispose()
     }
 
     fun sayHello() {

@@ -64,9 +64,9 @@ data class Signature(
                 sb.append(arguments.mapIndexed { index, it ->
                     when {
                         it.isPrimitiveType() -> "alloc<${it.toVarType().simpleName}>{ this.value = arg$index }.ptr"
-                        it == String -> "arg$index.toGString()"
-                        it == Array -> "arg$index.toGArray()"
-                        it == MutableMap -> "arg$index.toGDictionary()"
+                        it == String -> "arg$index.toGString(this)"
+                        it == Array -> "arg$index.toGArray(this)"
+                        it == MutableMap -> "arg$index.toGDictionary(this)"
                         else -> "arg$index._raw"
                     }
                 }.joinToString(", \n"))

@@ -13,8 +13,8 @@ fun CPointer<godot_string>.toKString(): String = memScoped {
     )!!.toKStringFromUtf8()
 }
 
-fun String.toGString(): CPointer<godot_string> {
-    val _string = alloc<godot_string>(godot_string.size)
+fun String.toGString(scope: AutofreeScope? = null): CPointer<godot_string> {
+    val _string: CPointer<godot_string> = scope?.alloc<godot_string>()?.ptr ?: godotAlloc()
     api.godot_string_new!!(_string)
     memScoped {
         api.godot_string_parse_utf8!!(_string, this@toGString.cstr.ptr)
@@ -31,8 +31,8 @@ fun CPointer<godot_dictionary>.toKMutableMap(): MutableMap<Variant, Variant> = m
     return map
 }
 
-fun MutableMap<Variant, Variant>.toGDictionary(): CPointer<godot_dictionary> {
-    val _dictionary = alloc<godot_dictionary>(godot_dictionary.size)
+fun MutableMap<Variant, Variant>.toGDictionary(scope: AutofreeScope? = null): CPointer<godot_dictionary> {
+    val _dictionary: CPointer<godot_dictionary> = scope?.alloc<godot_dictionary>()?.ptr ?: godotAlloc()
     godot.api.godot_dictionary_new!!(_dictionary)
     forEach { (key, value) ->
         api.godot_dictionary_set!!(_dictionary, key._raw, Variant.of(value)._raw)
@@ -47,8 +47,8 @@ fun CPointer<godot_array>.toKArray(): Array<Variant> = memScoped {
     }
 }
 
-fun Array<Variant>.toGArray(): CPointer<godot_array> {
-    val _array = alloc<godot_array>(godot_array.size)
+fun Array<Variant>.toGArray(scope: AutofreeScope? = null): CPointer<godot_array> {
+    val _array: CPointer<godot_array> = scope?.alloc<godot_array>()?.ptr ?: godotAlloc()
     godot.api.godot_array_new!!(_array)
     api.godot_array_resize!!(_array, size)
     forEachIndexed { index, it ->
@@ -152,21 +152,21 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         }
     }
 
-    internal constructor(_raw: CValue<godot_variant>) : this(_raw.place(alloc(godot_variant.size)))
+    internal constructor(_raw: CValue<godot_variant>) : this(_raw.place(godotAlloc()))
 
-    constructor() : this(alloc(godot_variant.size)) {
+    constructor() : this(godotAlloc()) {
         api.godot_variant_new_nil!!(_raw)
     }
 
-    constructor(value: Variant) : this(alloc(godot_variant.size)) {
+    constructor(value: Variant) : this(godotAlloc()) {
         api.godot_variant_new_copy!!(_raw, value._raw)
     }
 
-    constructor(value: Boolean) : this(alloc(godot_variant.size)) {
+    constructor(value: Boolean) : this(godotAlloc()) {
         api.godot_variant_new_bool!!(_raw, value)
     }
 
-    constructor(value: Long) : this(alloc(godot_variant.size)) {
+    constructor(value: Long) : this(godotAlloc()) {
         api.godot_variant_new_int!!(_raw, value)
     }
 
@@ -174,108 +174,110 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     constructor(value: Short) : this(value.toLong())
     constructor(value: Char) : this(value.toLong())
 
-    constructor(value: Double) : this(alloc(godot_variant.size)) {
+    constructor(value: Double) : this(godotAlloc()) {
         api.godot_variant_new_real!!(_raw, value)
     }
 
     constructor(value: Float) : this(value.toDouble())
 
-    constructor(value: ULong) : this(alloc(godot_variant.size)) {
+    constructor(value: ULong) : this(godotAlloc()) {
         api.godot_variant_new_uint!!(_raw, value)
     }
 
     constructor(value: UInt) : this(value.toULong())
     constructor(value: UShort) : this(value.toULong())
 
-    constructor(value: String) : this(alloc(godot_variant.size)) {
-        api.godot_variant_new_string!!(_raw, value.toGString())
+    constructor(value: String) : this(godotAlloc()) {
+        memScoped {
+            api.godot_variant_new_string!!(_raw, value.toGString(this))
+        }
     }
 
-    constructor(value: Vector2) : this(alloc(godot_variant.size)) {
+    constructor(value: Vector2) : this(godotAlloc()) {
         api.godot_variant_new_vector2!!(_raw, value._raw)
     }
 
-    constructor(value: Rect2) : this(alloc(godot_variant.size)) {
+    constructor(value: Rect2) : this(godotAlloc()) {
         api.godot_variant_new_rect2!!(_raw, value._raw)
     }
 
-    constructor(value: Vector3) : this(alloc(godot_variant.size)) {
+    constructor(value: Vector3) : this(godotAlloc()) {
         api.godot_variant_new_vector3!!(_raw, value._raw)
     }
 
-    constructor(value: Plane) : this(alloc(godot_variant.size)) {
+    constructor(value: Plane) : this(godotAlloc()) {
         api.godot_variant_new_plane!!(_raw, value._raw)
     }
 
-    constructor(value: AABB) : this(alloc(godot_variant.size)) {
+    constructor(value: AABB) : this(godotAlloc()) {
         api.godot_variant_new_aabb!!(_raw, value._raw)
     }
 
-    constructor(value: Quat) : this(alloc(godot_variant.size)) {
+    constructor(value: Quat) : this(godotAlloc()) {
         api.godot_variant_new_quat!!(_raw, value._raw)
     }
 
-    constructor(value: Basis) : this(alloc(godot_variant.size)) {
+    constructor(value: Basis) : this(godotAlloc()) {
         api.godot_variant_new_basis!!(_raw, value._raw)
     }
 
-    constructor(value: Transform2D) : this(alloc(godot_variant.size)) {
+    constructor(value: Transform2D) : this(godotAlloc()) {
         api.godot_variant_new_transform2d!!(_raw, value._raw)
     }
 
-    constructor(value: Transform) : this(alloc(godot_variant.size)) {
+    constructor(value: Transform) : this(godotAlloc()) {
         api.godot_variant_new_transform!!(_raw, value._raw)
     }
 
-    constructor(value: Color) : this(alloc(godot_variant.size)) {
+    constructor(value: Color) : this(godotAlloc()) {
         api.godot_variant_new_color!!(_raw, value._raw)
     }
 
-    constructor(value: NodePath) : this(alloc(godot_variant.size)) {
+    constructor(value: NodePath) : this(godotAlloc()) {
         api.godot_variant_new_node_path!!(_raw, value._raw)
     }
 
-    constructor(value: RID) : this(alloc(godot_variant.size)) {
+    constructor(value: RID) : this(godotAlloc()) {
         api.godot_variant_new_rid!!(_raw, value._raw)
     }
 
-    constructor(value: Object) : this(alloc(godot_variant.size)) {
+    constructor(value: Object) : this(godotAlloc()) {
         api.godot_variant_new_object!!(_raw, value._raw)
     }
 
-    constructor(value: MutableMap<Variant, Variant>) : this(alloc(godot_variant.size)) {
+    constructor(value: MutableMap<Variant, Variant>) : this(godotAlloc()) {
         api.godot_variant_new_dictionary!!(_raw, value.toGDictionary())
     }
 
-    constructor(value: Array<Variant>) : this(alloc(godot_variant.size)) {
+    constructor(value: Array<Variant>) : this(godotAlloc()) {
         api.godot_variant_new_array!!(_raw, value.toGArray())
     }
 
-    constructor(value: PoolByteArray) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolByteArray) : this(godotAlloc()) {
         api.godot_variant_new_pool_byte_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolIntArray) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolIntArray) : this(godotAlloc()) {
         api.godot_variant_new_pool_int_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolFloatArray) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolFloatArray) : this(godotAlloc()) {
         api.godot_variant_new_pool_real_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolStringArray) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolStringArray) : this(godotAlloc()) {
         api.godot_variant_new_pool_string_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolVector2Array) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolVector2Array) : this(godotAlloc()) {
         api.godot_variant_new_pool_vector2_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolVector3Array) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolVector3Array) : this(godotAlloc()) {
         api.godot_variant_new_pool_vector3_array!!(_raw, value._raw)
     }
 
-    constructor(value: PoolColorArray) : this(alloc(godot_variant.size)) {
+    constructor(value: PoolColorArray) : this(godotAlloc()) {
         api.godot_variant_new_pool_color_array!!(_raw, value._raw)
     }
 
@@ -400,12 +402,12 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         return Type.values()[godot.api.godot_variant_get_type!!(_raw).ordinal]
     }
 
-    fun call(method: String, args: Variant, argCount: Int): Variant {
-        return Variant(api.godot_variant_call!!(_raw, method.toGString(), args._raw.reinterpret(), argCount, null))
+    fun call(method: String, args: Variant, argCount: Int): Variant = memScoped {
+        Variant(api.godot_variant_call!!(_raw, method.toGString(this), args._raw.reinterpret(), argCount, null))
     }
 
-    fun hasMethod(method: String): Boolean {
-        return api.godot_variant_has_method!!(_raw, method.toGString())
+    fun hasMethod(method: String): Boolean = memScoped {
+        api.godot_variant_has_method!!(_raw, method.toGString(this))
     }
 
     override fun hashCode(): Int {
@@ -425,6 +427,10 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
             api.godot_variant_operator_less!!(_raw, other._raw) -> -1
             else -> 1
         }
+    }
+
+    fun dispose() {
+        api.godot_variant_destroy!!(_raw)
     }
 
     @Suppress("UNCHECKED_CAST")

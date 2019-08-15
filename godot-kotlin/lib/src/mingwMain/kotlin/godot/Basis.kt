@@ -5,7 +5,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CValue
 
 class Basis internal constructor(val _raw: CPointer<godot_basis>) {
-    internal constructor(_raw: CValue<godot_basis>) : this(_raw.place(godot.alloc(godot_basis.size)))
+    internal constructor(_raw: CValue<godot_basis>) : this(_raw.place(godotAlloc()))
 
-    constructor() : this(godot.alloc())
+    constructor() : this(godotAlloc())
 }

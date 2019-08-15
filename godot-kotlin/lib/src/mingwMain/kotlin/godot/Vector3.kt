@@ -6,7 +6,9 @@ import kotlinx.cinterop.CValue
 
 @UseExperimental(ExperimentalUnsignedTypes::class)
 class Vector3 internal constructor(val _raw: CPointer<godot_vector3>) {
-    internal constructor(_raw: CValue<godot_vector3>) : this(_raw.place(godot.alloc(godot_vector3.size)))
+    internal constructor(_raw: CValue<godot_vector3>) : this(_raw.place(godotAlloc()))
+
+    constructor() : this(godotAlloc())
 
     enum class Axis {
         X,
@@ -19,6 +21,4 @@ class Vector3 internal constructor(val _raw: CPointer<godot_vector3>) {
             fun byValue(value: UInt) = values()[value.toInt()]
         }
     }
-
-    constructor() : this(godot.alloc())
 }

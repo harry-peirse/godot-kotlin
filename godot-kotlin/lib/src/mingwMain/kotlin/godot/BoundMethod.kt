@@ -47,6 +47,8 @@ internal fun methodWrapper(godotObject: COpaquePointer?,
     val arguments: List<Variant> = (0 until numArgs).map { Variant(args!![it]!!) }
     val result: Variant? = boundMethod(obj, *arguments.toTypedArray())
     val ret = result?._raw?.pointed?.readValue() ?: cValue()
+    arguments.forEach { it.dispose() }
+    result?.dispose()
     return ret
 }
 

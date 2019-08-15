@@ -2,8 +2,6 @@ package godot
 
 import godot.internal.godot_signal
 import godot.internal.godot_signal_argument
-import godot.internal.godot_string
-import godot.internal.godot_variant_type
 import kotlinx.cinterop.*
 import platform.posix.memset
 
@@ -21,24 +19,20 @@ fun registerSignal(className: String, signalName: String, vararg arguments: Pair
         signal.num_default_args = 0
 
         if (signal.num_args != 0) {
-            signal.args = godot.alloc(godot_signal_argument.size * signal.num_args)
+            signal.args = godotAlloc(godot_signal_argument.size * signal.num_args)
             memset(signal.args, 0, (godot_signal_argument.size * signal.num_args).toULong())
         }
 
         (0 until signal.num_args).forEach { i ->
-            val name: String = arguments[i].first
-            godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, name.toGString())
+            val name = arguments[i].first.toGString(this)
+            godot.api.godot_string_new_copy!!(signal.args!![i].name.ptr, name)
             signal.args!![i].type = arguments[i].second.ordinal
         }
 
-        godot.nativescriptApi.godot_nativescript_register_signal!!(godot.nativescriptHandle, className.cstr.ptr, signal.ptr)
+        godot.nativescriptApi.godot_nativescript_register_signal!!(nativescriptHandle, className.cstr.ptr, signal.ptr)
 
         (0 until signal.num_args).forEach { i ->
             godot.api.godot_string_destroy!!(signal.args!![i].name.ptr)
-        }
-
-        if (signal.args != null) {
-            godot.api.godot_free!!(signal.args)
         }
     }
 }

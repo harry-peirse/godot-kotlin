@@ -4,9 +4,9 @@ import godot.internal.godot_vector2
 import kotlinx.cinterop.*
 
 class Vector2 internal constructor(val _raw: CPointer<godot_vector2>) {
-    internal constructor(_raw: CValue<godot_vector2>) : this(_raw.place(godot.alloc(godot_vector2.size)))
+    internal constructor(_raw: CValue<godot_vector2>) : this(_raw.place(godotAlloc()))
 
-    constructor(x: Float = 0f, y: Float = 0f) : this(godot.alloc(godot_vector2.size)) {
+    constructor(x: Float = 0f, y: Float = 0f) : this(godotAlloc()) {
         godot.api.godot_vector2_new!!(_raw, x, y)
     }
 
@@ -30,5 +30,9 @@ class Vector2 internal constructor(val _raw: CPointer<godot_vector2>) {
 
     override fun toString(): String = memScoped {
         godot.api.godot_vector2_as_string!!(_raw).ptr.toKString()
+    }
+
+    fun dispose() {
+        godotFree(_raw)
     }
 }
