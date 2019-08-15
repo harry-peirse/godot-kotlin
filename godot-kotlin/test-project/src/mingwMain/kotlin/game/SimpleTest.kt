@@ -31,8 +31,6 @@ class SimpleTest : Sprite() {
             emitSignal("direction_changed", newDirection, position)
             lastDirection = newDirection
         }
-
-        position.dispose()
     }
 
     fun sayHello() {

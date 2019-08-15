@@ -3,36 +3,12 @@ package godot
 import godot.internal.godot_vector2
 import kotlinx.cinterop.*
 
-class Vector2 internal constructor(val _raw: CPointer<godot_vector2>) {
-    internal constructor(_raw: CValue<godot_vector2>) : this(_raw.place(godotAlloc()))
+class Vector2(var x: Float = 0f, var y: Float = 0f) {
+    internal constructor(raw: CPointer<godot_vector2>) : this(godot.api.godot_vector2_get_x!!(raw), godot.api.godot_vector2_get_y!!(raw))
 
-    constructor(x: Float = 0f, y: Float = 0f) : this(godotAlloc()) {
-        godot.api.godot_vector2_new!!(_raw, x, y)
-    }
-
-    var x: Float
-        get() = godot.api.godot_vector2_get_x!!(_raw)
-        set(value) = godot.api.godot_vector2_set_x!!(_raw, value)
-    var y: Float
-        get() = godot.api.godot_vector2_get_y!!(_raw)
-        set(value) = godot.api.godot_vector2_set_y!!(_raw, value)
-
-    override fun hashCode(): Int {
-        return _raw.pointed.hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return when (other) {
-            is Vector2 -> godot.api.godot_vector2_operator_equal!!(_raw, other._raw)
-            else -> false
-        }
-    }
-
-    override fun toString(): String = memScoped {
-        godot.api.godot_vector2_as_string!!(_raw).ptr.toKString()
-    }
-
-    fun dispose() {
-        godotFree(_raw)
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_vector2> {
+        val raw = scope.alloc<godot_vector2>()
+        api.godot_vector2_new!!(raw.ptr, x, y)
+        return raw.ptr
     }
 }

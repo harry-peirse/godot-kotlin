@@ -171,7 +171,9 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     constructor(value: Int) : this(value.toLong())
+
     constructor(value: Short) : this(value.toLong())
+
     constructor(value: Char) : this(value.toLong())
 
     constructor(value: Double) : this(godotAlloc()) {
@@ -185,6 +187,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     constructor(value: UInt) : this(value.toULong())
+
     constructor(value: UShort) : this(value.toULong())
 
     constructor(value: String) : this(godotAlloc()) {
@@ -194,7 +197,9 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     constructor(value: Vector2) : this(godotAlloc()) {
-        api.godot_variant_new_vector2!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_vector2!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Rect2) : this(godotAlloc()) {
@@ -290,7 +295,9 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     fun toInt(): Int = toLong().toInt()
+
     fun toShort(): Short = toLong().toShort()
+
     fun toChar(): Char = toLong().toChar()
 
     fun toULong(): ULong {
@@ -298,6 +305,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     fun toUInt(): UInt = toULong().toUInt()
+
     fun toUShort(): UShort = toULong().toUShort()
 
     fun toDouble(): Double {
@@ -311,7 +319,9 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     fun toVector2(): Vector2 {
-        return Vector2(api.godot_variant_as_vector2!!(_raw))
+        memScoped {
+            return Vector2(api.godot_variant_as_vector2!!(_raw).ptr)
+        }
     }
 
     fun toRect2(): Rect2 {
@@ -522,8 +532,8 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
                 is PoolVector3Array -> Variant(value)
                 is PoolColorArray -> Variant(value)
                 else -> {
-                    godot.printError("Cannot create Variant of type ${value::class}")
-                    throw UnsupportedOperationException("Cannot create Variant of type ${value::class}")
+                    godot.printError("Cannot create Variant of type ${value::class.simpleName}")
+                    throw UnsupportedOperationException("Cannot create Variant of type ${value::class.simpleName}")
                 }
             }
         }
