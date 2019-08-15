@@ -16,6 +16,56 @@ lateinit var gdnlib: CPointer<godot_variant>
 lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
 lateinit var nativescript11Api: godot_gdnative_ext_nativescript_1_1_api_struct
 
+internal fun CPointer<godot_string>.toKString(): String = memScoped {
+    api.godot_char_string_get_data!!(
+            api.godot_string_utf8!!(this@toKString).ptr
+    )!!.toKStringFromUtf8()
+}
+
+internal fun String.toGString(scope: AutofreeScope? = null): CPointer<godot_string> {
+    val _string: CPointer<godot_string> = scope?.alloc<godot_string>()?.ptr ?: godotAlloc()
+    api.godot_string_new!!(_string)
+    memScoped {
+        api.godot_string_parse_utf8!!(_string, this@toGString.cstr.ptr)
+    }
+    return _string
+}
+
+internal fun CPointer<godot_dictionary>.toKMutableMap(): MutableMap<Variant, Variant> = memScoped {
+    val keys = godot.api.godot_dictionary_keys!!(this@toKMutableMap).ptr.toKArray()
+    val map = mutableMapOf<Variant, Variant>()
+    keys.forEach {
+        map[it] = Variant(godot.api.godot_dictionary_get!!(this@toKMutableMap, it._raw))
+    }
+    return map
+}
+
+internal fun MutableMap<Variant, Variant>.toGDictionary(scope: AutofreeScope? = null): CPointer<godot_dictionary> {
+    val _dictionary: CPointer<godot_dictionary> = scope?.alloc<godot_dictionary>()?.ptr ?: godotAlloc()
+    godot.api.godot_dictionary_new!!(_dictionary)
+    forEach { (key, value) ->
+        api.godot_dictionary_set!!(_dictionary, key._raw, Variant.of(value)._raw)
+    }
+    return _dictionary
+}
+
+internal fun CPointer<godot_array>.toKArray(): Array<Variant> = memScoped {
+    val size = godot.api.godot_array_size!!(this@toKArray)
+    return Array(size) {
+        Variant(godot.api.godot_array_get!!(this@toKArray, it))
+    }
+}
+
+internal fun Array<Variant>.toGArray(scope: AutofreeScope? = null): CPointer<godot_array> {
+    val _array: CPointer<godot_array> = scope?.alloc<godot_array>()?.ptr ?: godotAlloc()
+    godot.api.godot_array_new!!(_array)
+    api.godot_array_resize!!(_array, size)
+    forEachIndexed { index, it ->
+        api.godot_array_set!!(_array, index, it._raw)
+    }
+    return _array
+}
+
 fun print(message: Any?) {
     memScoped {
         api.godot_print!!(message.toString().toGString(this))
