@@ -1,8 +1,5 @@
 package godot
 
-import godot.internal.godot_array
-import godot.internal.godot_dictionary
-import godot.internal.godot_string
 import godot.internal.godot_variant
 import kotlinx.cinterop.*
 import kotlin.reflect.KClass
@@ -153,59 +150,85 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     constructor(value: Rect2) : this(godotAlloc()) {
-        api.godot_variant_new_rect2!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_rect2!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Vector3) : this(godotAlloc()) {
-        api.godot_variant_new_vector3!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_vector3!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Plane) : this(godotAlloc()) {
-        api.godot_variant_new_plane!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_plane!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: AABB) : this(godotAlloc()) {
-        api.godot_variant_new_aabb!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_aabb!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Quat) : this(godotAlloc()) {
-        api.godot_variant_new_quat!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_quat!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Basis) : this(godotAlloc()) {
-        api.godot_variant_new_basis!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_basis!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Transform2D) : this(godotAlloc()) {
-        api.godot_variant_new_transform2d!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_transform2d!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Transform) : this(godotAlloc()) {
-        api.godot_variant_new_transform!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_transform!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Color) : this(godotAlloc()) {
-        api.godot_variant_new_color!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_color!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: NodePath) : this(godotAlloc()) {
-        api.godot_variant_new_node_path!!(_raw, value._raw)
+        api.godot_variant_new_node_path!!(_raw, value.raw)
     }
 
     constructor(value: RID) : this(godotAlloc()) {
-        api.godot_variant_new_rid!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_rid!!(_raw, value._raw(this))
+        }
     }
 
     constructor(value: Object) : this(godotAlloc()) {
-        api.godot_variant_new_object!!(_raw, value._raw)
+        memScoped {
+            api.godot_variant_new_object!!(_raw, value._raw)
+        }
     }
 
     constructor(value: MutableMap<Variant, Variant>) : this(godotAlloc()) {
-        api.godot_variant_new_dictionary!!(_raw, value.toGDictionary())
+        memScoped {
+            api.godot_variant_new_dictionary!!(_raw, value.toGDictionary(this))
+        }
     }
 
     constructor(value: Array<Variant>) : this(godotAlloc()) {
-        api.godot_variant_new_array!!(_raw, value.toGArray())
+        memScoped {
+            api.godot_variant_new_array!!(_raw, value.toGArray(this))
+        }
     }
 
     constructor(value: PoolByteArray) : this(godotAlloc()) {
@@ -268,54 +291,52 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         return api.godot_variant_as_string!!(_raw).ptr.toKString()
     }
 
-    fun toVector2(): Vector2 {
-        memScoped {
-            return Vector2(api.godot_variant_as_vector2!!(_raw).ptr)
-        }
+    fun toVector2(): Vector2 = memScoped {
+        Vector2(api.godot_variant_as_vector2!!(_raw).ptr)
     }
 
-    fun toRect2(): Rect2 {
-        return Rect2(api.godot_variant_as_rect2!!(_raw))
+    fun toRect2(): Rect2 = memScoped {
+        Rect2(api.godot_variant_as_rect2!!(_raw).ptr)
     }
 
-    fun toVector3(): Vector3 {
-        return Vector3(api.godot_variant_as_vector3!!(_raw))
+    fun toVector3(): Vector3 = memScoped {
+        Vector3(api.godot_variant_as_vector3!!(_raw).ptr)
     }
 
-    fun toPlane(): Plane {
-        return Plane(api.godot_variant_as_plane!!(_raw))
+    fun toPlane(): Plane = memScoped {
+        Plane(api.godot_variant_as_plane!!(_raw).ptr)
     }
 
-    fun toAABB(): AABB {
-        return AABB(api.godot_variant_as_aabb!!(_raw))
+    fun toAABB(): AABB = memScoped {
+        AABB(api.godot_variant_as_aabb!!(_raw).ptr)
     }
 
-    fun toQuat(): Quat {
-        return Quat(api.godot_variant_as_quat!!(_raw))
+    fun toQuat(): Quat = memScoped {
+        Quat(api.godot_variant_as_quat!!(_raw).ptr)
     }
 
-    fun toBasis(): Basis {
-        return Basis(api.godot_variant_as_basis!!(_raw))
+    fun toBasis(): Basis = memScoped {
+        Basis(api.godot_variant_as_basis!!(_raw).ptr)
     }
 
-    fun toTransform(): Transform {
-        return Transform(api.godot_variant_as_transform!!(_raw))
+    fun toTransform(): Transform = memScoped {
+        Transform(api.godot_variant_as_transform!!(_raw).ptr)
     }
 
-    fun toTransform2D(): Transform2D {
-        return Transform2D(api.godot_variant_as_transform2d!!(_raw))
+    fun toTransform2D(): Transform2D = memScoped {
+        Transform2D(api.godot_variant_as_transform2d!!(_raw).ptr)
     }
 
-    fun toColor(): Color {
-        return Color(api.godot_variant_as_color!!(_raw))
+    fun toColor(): Color = memScoped {
+        Color(api.godot_variant_as_color!!(_raw).ptr)
     }
 
-    fun toNodePath(): NodePath {
-        return NodePath(api.godot_variant_as_node_path!!(_raw))
+    fun toNodePath(): NodePath = memScoped {
+        NodePath(api.godot_variant_as_node_path!!(_raw).ptr)
     }
 
-    fun toRID(): RID {
-        return RID(api.godot_variant_as_rid!!(_raw))
+    fun toRID(): RID = memScoped {
+        RID(api.godot_variant_as_rid!!(_raw).ptr)
     }
 
     fun toObject(): Object {
@@ -437,12 +458,12 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         }
     }
 
-    fun destroy() {
-        api.godot_variant_destroy!!(_raw)
-    }
-
     @UseExperimental(ExperimentalUnsignedTypes::class)
     companion object {
+
+        private fun godotAlloc(): CPointer<godot_variant> {
+            return godot.api.godot_alloc!!(godot_variant.size.toInt())!!.reinterpret()
+        }
 
         @Suppress("UNCHECKED_CAST")
         internal fun <T : Any> of(value: T): Variant {

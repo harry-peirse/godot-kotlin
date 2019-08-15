@@ -1,11 +1,17 @@
 package godot
 
 import godot.internal.godot_transform
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
+import kotlinx.cinterop.*
 
-class Transform internal constructor(val _raw: CPointer<godot_transform>) {
-    internal constructor(_raw: CValue<godot_transform>) : this(_raw.place(godotAlloc()))
+class Transform(var basis: Basis = Basis(), var origin: Vector3 = Vector3()) {
+    internal constructor(raw: CPointer<godot_transform>) : this(
+            memScoped { Basis(api.godot_transform_get_basis!!(raw).ptr) },
+            memScoped { Vector3(api.godot_transform_get_origin!!(raw).ptr) }
+    )
 
-    constructor() : this(godotAlloc())
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_transform> {
+        val raw = scope.alloc<godot_transform>()
+        api.godot_transform_new!!(raw.ptr, basis._raw(scope), origin._raw(scope))
+        return raw.ptr
+    }
 }

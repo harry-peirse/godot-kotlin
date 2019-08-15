@@ -1,11 +1,19 @@
 package godot
 
 import godot.internal.godot_quat
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
+import kotlinx.cinterop.*
 
-class Quat internal constructor(val _raw: CPointer<godot_quat>) {
-    internal constructor(_raw: CValue<godot_quat>) : this(_raw.place(godotAlloc()))
+class Quat(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f, var w: Float = 0f) {
+    internal constructor(raw: CPointer<godot_quat>) : this(
+            api.godot_quat_get_x!!(raw),
+            api.godot_quat_get_y!!(raw),
+            api.godot_quat_get_z!!(raw),
+            api.godot_quat_get_w!!(raw)
+    )
 
-    constructor() : this(godotAlloc())
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_quat> {
+        val raw = scope.alloc<godot_quat>()
+        api.godot_quat_new!!(raw.ptr, x, y, z, w)
+        return raw.ptr
+    }
 }

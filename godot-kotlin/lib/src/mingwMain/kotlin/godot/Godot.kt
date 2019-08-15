@@ -22,8 +22,8 @@ internal fun CPointer<godot_string>.toKString(): String = memScoped {
     )!!.toKStringFromUtf8()
 }
 
-internal fun String.toGString(scope: AutofreeScope? = null): CPointer<godot_string> {
-    val _string: CPointer<godot_string> = scope?.alloc<godot_string>()?.ptr ?: godotAlloc()
+internal fun String.toGString(scope: AutofreeScope): CPointer<godot_string> {
+    val _string: CPointer<godot_string> = scope.alloc<godot_string>().ptr
     api.godot_string_new!!(_string)
     memScoped {
         api.godot_string_parse_utf8!!(_string, this@toGString.cstr.ptr)
@@ -40,8 +40,8 @@ internal fun CPointer<godot_dictionary>.toKMutableMap(): MutableMap<Variant, Var
     return map
 }
 
-internal fun MutableMap<Variant, Variant>.toGDictionary(scope: AutofreeScope? = null): CPointer<godot_dictionary> {
-    val _dictionary: CPointer<godot_dictionary> = scope?.alloc<godot_dictionary>()?.ptr ?: godotAlloc()
+internal fun MutableMap<Variant, Variant>.toGDictionary(scope: AutofreeScope): CPointer<godot_dictionary> {
+    val _dictionary: CPointer<godot_dictionary> = scope.alloc<godot_dictionary>().ptr
     godot.api.godot_dictionary_new!!(_dictionary)
     forEach { (key, value) ->
         api.godot_dictionary_set!!(_dictionary, key._raw, Variant.of(value)._raw)
@@ -56,8 +56,8 @@ internal fun CPointer<godot_array>.toKArray(): Array<Variant> = memScoped {
     }
 }
 
-internal fun Array<Variant>.toGArray(scope: AutofreeScope? = null): CPointer<godot_array> {
-    val _array: CPointer<godot_array> = scope?.alloc<godot_array>()?.ptr ?: godotAlloc()
+internal fun Array<Variant>.toGArray(scope: AutofreeScope): CPointer<godot_array> {
+    val _array: CPointer<godot_array> = scope.alloc<godot_array>().ptr
     godot.api.godot_array_new!!(_array)
     api.godot_array_resize!!(_array, size)
     forEachIndexed { index, it ->
@@ -164,15 +164,3 @@ fun nativeScriptInit(handle: NativescriptHandle) {
 
 internal lateinit var nativescriptHandle: COpaquePointer
 internal var languageIndex: Int = -1
-
-internal fun godotFree(pointer: COpaquePointer) {
-    godot.api.godot_free!!(pointer)
-}
-
-internal inline fun <reified T : CStructVar> godotAlloc(): CPointer<T> {
-    return godotAlloc(sizeOf<T>())
-}
-
-internal inline fun <reified T : CStructVar> godotAlloc(size: Long): CPointer<T> {
-    return godot.api.godot_alloc!!(size.toInt())!!.reinterpret()
-}

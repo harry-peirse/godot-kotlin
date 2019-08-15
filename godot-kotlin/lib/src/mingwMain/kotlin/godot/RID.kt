@@ -1,11 +1,14 @@
 package godot
 
 import godot.internal.godot_rid
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
+import kotlinx.cinterop.*
 
-class RID internal constructor(val _raw: CPointer<godot_rid>) {
-    internal constructor(_raw: CValue<godot_rid>) : this(_raw.place(godotAlloc()))
+class RID() {
+    internal constructor(raw: CPointer<godot_rid>) : this()
 
-    constructor() : this(godotAlloc())
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_rid> {
+        val raw = scope.alloc<godot_rid>()
+        api.godot_rid_new!!(raw.ptr)
+        return raw.ptr
+    }
 }

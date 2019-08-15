@@ -1,11 +1,17 @@
 package godot
 
 import godot.internal.godot_transform2d
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
+import kotlinx.cinterop.*
 
-class Transform2D internal constructor(val _raw: CPointer<godot_transform2d>) {
-    internal constructor(_raw: CValue<godot_transform2d>) : this(_raw.place(godotAlloc()))
+class Transform2D(var rotation: Float = 0f, var position: Vector2 = Vector2()) {
+    internal constructor(raw: CPointer<godot_transform2d>) : this(
+            api.godot_transform2d_get_rotation!!(raw),
+            memScoped { Vector2(api.godot_transform2d_get_origin!!(raw).ptr) }
+    )
 
-    constructor() : this(godotAlloc())
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_transform2d> {
+        val raw = scope.alloc<godot_transform2d>()
+        api.godot_transform2d_new!!(raw.ptr, rotation, position._raw(scope))
+        return raw.ptr
+    }
 }

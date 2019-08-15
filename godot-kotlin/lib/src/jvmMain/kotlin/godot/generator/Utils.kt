@@ -51,6 +51,28 @@ fun ClassName.toVarType(): ClassName = when {
     this == String -> ClassName("kotlinx.cinterop", "ByteVar")
     else -> this
 }
+fun ClassName.toRawCore(): ClassName = ClassName(INTERNAL_PACKAGE, when(simpleName) {
+    "AABB" -> "godot_aabb"
+    "Basis" -> "godot_basis"
+    "Color" -> "godot_color"
+    "NodePath" -> "godot_node_path"
+    "Plane" -> "godot_plane"
+    "PoolByteArray" -> "godot_pool_byte_array"
+    "PoolColorArray" -> "godot_pool_color_array"
+    "PoolFloatArray" -> "godot_pool_real_array"
+    "PoolIntArray" -> "godot_pool_int_array"
+    "PoolStringArray" -> "godot_pool_string_array"
+    "PoolVector2Array" -> "godot_pool_vector2_array"
+    "PoolVector3Array" -> "godot_pool_vector3_array"
+    "Quat" -> "godot_quat"
+    "Rect2" -> "godot_rect2"
+    "RID" -> "godot_rid"
+    "Transform" -> "godot_transform"
+    "Transform2D" -> "godot_transform2d"
+    "Vector2" -> "godot_vector2"
+    "Vector3" -> "godot_vector3"
+    else -> simpleName
+})
 
 fun ClassName.parameterized(): TypeName = when (this) {
     Array -> Array_Variant

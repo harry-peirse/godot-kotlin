@@ -67,7 +67,8 @@ data class Signature(
                         it == String -> "arg$index.toGString(this)"
                         it == Array -> "arg$index.toGArray(this)"
                         it == MutableMap -> "arg$index.toGDictionary(this)"
-                        it.simpleName == "Vector2" -> "arg$index._raw(this)"
+                        it.simpleName == "Variant" -> "arg$index._raw"
+                        it.isCoreType() -> "arg$index._raw(this)"
                         else -> "arg$index._raw"
                     }
                 }.joinToString(", \n"))
@@ -80,15 +81,16 @@ data class Signature(
     private fun returnTypeDeclaration(type: ClassName) = CodeBlock.builder().apply {
         when {
             type.isPrimitiveType() -> addStatement("val ret = alloc<%T>()", type.toVarType())
-            type.simpleName == "Vector2" -> addStatement("val ret = alloc<%T>()", ClassName(INTERNAL_PACKAGE, "godot_vector2"))
-            type.isCoreType() -> addStatement("val ret = %T()", type)
+            type.simpleName == "Variant" -> addStatement("val ret = Variant()")
+            type.isCoreType() -> addStatement("val ret = alloc<%T>()", type.toRawCore())
             else -> addStatement("val ret = Variant()")
         }
     }.build()
 
     private fun returnOutParameter(type: ClassName) = when {
         type.isUnit() -> "null"
-        type.simpleName == "Vector2" -> "ret.ptr"
+        type.simpleName == "Variant" -> "ret._raw"
+        type.isCoreType() -> "ret.ptr"
         type.isPrimitiveType() -> "ret.ptr"
         else -> "ret._raw"
     }
@@ -99,10 +101,9 @@ data class Signature(
             type == String -> addStatement("return ret.toString()")
             type == Array -> addStatement("return ret.toArray()")
             type == MutableMap -> addStatement("return ret.toMutableMap()")
-            type.simpleName == "Vector2" -> addStatement("return Vector2(ret.ptr)")
+            type.isCoreType() -> addStatement("return %T(ret.ptr)", type)
             type.isEnumType() -> addStatement("return %T.byValue(ret.value)", type)
             type.isPrimitiveType() -> addStatement("return ret.value")
-            type.isCoreType() -> addStatement("return ret")
             else -> addStatement("return %T.getFromVariant(ret._raw)", type)
         }
     }.build()

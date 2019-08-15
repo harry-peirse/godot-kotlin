@@ -1,11 +1,17 @@
 package godot
 
 import godot.internal.godot_aabb
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CValue
+import kotlinx.cinterop.*
 
-class AABB internal constructor(val _raw: CPointer<godot_aabb>) {
-    internal constructor(_raw: CValue<godot_aabb>) : this(_raw.place(godotAlloc()))
+class AABB(var position: Vector3, var size: Vector3) {
+    internal constructor(raw: CPointer<godot_aabb>) : this(
+            memScoped { Vector3(api.godot_aabb_get_position!!(raw).ptr) },
+            memScoped { Vector3(api.godot_aabb_get_size!!(raw).ptr) }
+    )
 
-    constructor() : this(godotAlloc())
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_aabb> {
+        val raw = scope.alloc<godot_aabb>()
+        api.godot_aabb_new!!(raw.ptr, position._raw(scope), size._raw(scope))
+        return raw.ptr
+    }
 }
