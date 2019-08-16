@@ -1,14 +1,14 @@
 package godot
 
 import godot.internal.godot_node_path
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.invoke
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.reinterpret
+import godot.toKString
+import kotlinx.cinterop.*
 
 fun String.toNodePath(): NodePath = NodePath(this)
 
 class NodePath internal constructor(internal val raw: CPointer<godot_node_path>) {
+
+    internal constructor(value: CValue<godot_node_path>) : this (value.place(godotAlloc()))
 
     constructor(from: String = "") : this(godotAlloc()) {
         memScoped {

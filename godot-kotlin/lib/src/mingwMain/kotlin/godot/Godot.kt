@@ -3,6 +3,12 @@ package godot
 import godot.internal.*
 import kotlinx.cinterop.*
 
+internal const val PLANE_EQ_DOT_EPSILON = 0.999f
+internal const val PLANE_EQ_D_EPSILON = 0.0001f
+internal const val CMP_EPSILON = 0.00001f
+internal const val CMP_EPSILON2 = (CMP_EPSILON * CMP_EPSILON)
+internal const val Math_PI = 3.14159265358979323846f
+
 const val GDNATIVE_INIT = "godot_gdnative_init"
 const val GDNATIVE_TERMINATE = "godot_gdnative_terminate"
 const val NATIVESCRIPT_INIT = "godot_nativescript_init"

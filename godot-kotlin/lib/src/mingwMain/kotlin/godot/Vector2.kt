@@ -4,6 +4,9 @@ import godot.internal.godot_vector2
 import kotlinx.cinterop.*
 import kotlin.math.*
 
+typealias Point2 = Vector2
+typealias Size2 = Vector2
+
 class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
 
     var width: Float
@@ -53,50 +56,29 @@ class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
 
     operator fun plus(v: Vector2) = Vector2(x + v.x, y + v.y)
 
-    operator fun plusAssign(v: Vector2) {
-        x += v.x
-        y += v.y
-    }
-
     operator fun minus(v: Vector2) = Vector2(x - v.x, y - v.y)
-
-    operator fun minusAssign(v: Vector2) {
-        x -= v.x
-        y -= v.y
-    }
 
     operator fun times(v: Vector2) = Vector2(x * v.x, y * v.y)
 
-    operator fun timesAssign(v: Vector2) {
-        x *= v.x
-        y *= v.y
-    }
-
     operator fun times(value: Float) = Vector2(x * value, y * value)
-
-    operator fun timesAssign(value: Float) {
-        x *= value
-        y *= value
-    }
-
 
     operator fun div(v: Vector2) = Vector2(x / v.x, y / v.y)
 
-    operator fun divAssign(v: Vector2) {
-        x /= v.x
-        y /= v.y
-    }
-
     operator fun div(value: Float) = Vector2(x / value, y / value)
-
-    operator fun divAssign(value: Float) {
-        x /= value
-        y /= value
-    }
 
     operator fun unaryMinus() = Vector2(-x, -y)
 
     fun copy() = Vector2(x, y)
+
+    fun set(x: Float = 0f, y: Float = 0f) {
+        this.x = x
+        this.y = y
+    }
+
+    fun set(v: Vector2) {
+        this.x = v.x
+        this.y = v.y
+    }
 
     override fun compareTo(other: Vector2): Int = if (this == other) 0 else {
         if (x == other.x) {
@@ -108,7 +90,7 @@ class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
 
     fun normalize() {
         if (x != y) {
-            this /= length()
+            set(this / length())
         }
     }
 
@@ -142,7 +124,7 @@ class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
 
     fun clamped(f: Float): Vector2 {
         val l = length()
-        val v = copy()
+        var v = copy()
         if (l > 0 && f < l) {
             v /= l
             v *= f
@@ -188,7 +170,7 @@ class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
     fun abs() = Vector2(abs(x), abs(y))
 
     fun rotated(by: Float): Vector2 {
-        val v = Vector2()
+        var v = Vector2()
         v.setRotation(angle() + by)
         v *= length()
         return v

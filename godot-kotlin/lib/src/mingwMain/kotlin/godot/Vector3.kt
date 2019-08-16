@@ -47,55 +47,31 @@ class Vector3(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f) : Compara
 
     operator fun plus(v: Vector3) = Vector3(x + v.x, y + v.y, z + v.z)
 
-    operator fun plusAssign(v: Vector3) {
-        x += v.x
-        y += v.y
-        z += v.z
-    }
-
     operator fun minus(v: Vector3) = Vector3(x - v.x, y - v.y, z - v.z)
-
-    operator fun minusAssign(v: Vector3) {
-        x -= v.x
-        y -= v.y
-        z -= v.z
-    }
 
     operator fun times(v: Vector3) = Vector3(x * v.x, y * v.y, z * v.z)
 
-    operator fun timesAssign(v: Vector3) {
-        x *= v.x
-        y *= v.y
-        z *= v.z
-    }
-
     operator fun times(value: Float) = Vector3(x * value, y * value, z * value)
-
-    operator fun timesAssign(value: Float) {
-        x *= value
-        y *= value
-        z *= value
-    }
 
     operator fun div(v: Vector3) = Vector3(x / v.x, y / v.y, z / v.z)
 
-    operator fun divAssign(v: Vector3) {
-        x /= v.x
-        y /= v.y
-        z /= v.z
-    }
-
     operator fun div(value: Float) = Vector3(x / value, y / value, z / value)
-
-    operator fun divAssign(value: Float) {
-        x /= value
-        y /= value
-        z /= value
-    }
 
     operator fun unaryMinus() = Vector3(-x, -y, -z)
 
     fun copy() = Vector3(x, y, z)
+
+    fun set(v: Vector3) {
+        x = v.x
+        y = v.y
+        z = v.z
+    }
+
+    fun set(x: Float, y: Float, z: Float) {
+        this.x = x
+        this.y = y
+        this.z = z
+    }
 
     override fun compareTo(other: Vector3): Int = if (this == other) 0 else {
         if (x == other.x) {

@@ -4,12 +4,6 @@ import godot.internal.godot_plane
 import kotlinx.cinterop.*
 import kotlin.math.abs
 
-private const val PLANE_EQ_DOT_EPSILON = 0.999f
-private const val PLANE_EQ_D_EPSILON = 0.0001f
-private const val CMP_EPSILON = 0.00001f
-private const val CMP_EPSILON2 = (CMP_EPSILON * CMP_EPSILON)
-private const val Math_PI = 3.14159265358979323846f
-
 class Plane(var normal: Vector3, var distance: Float) {
 
     constructor(a: Float, b: Float, c: Float, d: Float) : this(Vector3(a, b, c), d)
@@ -64,7 +58,7 @@ class Plane(var normal: Vector3, var distance: Float) {
         val p1 = Vector3(1f, 0f, 0f)
         val p2 = Vector3(0f, 1f, 0f)
 
-        val p = if (abs(normal.dot(p1)) > 0.99f) // if too similar to p1
+        var p = if (abs(normal.dot(p1)) > 0.99f) // if too similar to p1
             p2 // use p2
         else
             p1 // use p1

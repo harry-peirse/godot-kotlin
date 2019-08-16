@@ -208,9 +208,7 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
     }
 
     constructor(value: RID) : this(godotAlloc()) {
-        memScoped {
-            api.godot_variant_new_rid!!(_raw, value._raw(this))
-        }
+        api.godot_variant_new_rid!!(_raw, value.raw)
     }
 
     constructor(value: Object) : this(godotAlloc()) {
@@ -331,12 +329,12 @@ class Variant internal constructor(val _raw: CPointer<godot_variant>) : Comparab
         Color(api.godot_variant_as_color!!(_raw).ptr)
     }
 
-    fun toNodePath(): NodePath = memScoped {
-        NodePath(api.godot_variant_as_node_path!!(_raw).ptr)
+    fun toNodePath(): NodePath {
+        return NodePath(api.godot_variant_as_node_path!!(_raw))
     }
 
-    fun toRID(): RID = memScoped {
-        RID(api.godot_variant_as_rid!!(_raw).ptr)
+    fun toRID(): RID {
+        return RID(api.godot_variant_as_rid!!(_raw))
     }
 
     fun toObject(): Object {
