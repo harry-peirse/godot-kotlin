@@ -1,17 +1,17 @@
 # godot-kotlin
-Very experimental Godot bindings in Kotlin
+Still very experimental Godot bindings in Kotlin
 
 This repository contains:
- - A godot project in the root
- - A gradle/kotlin multimodule project (I used IntelliJ IDEA) under `/godot-kotlin`
-   - `/godot-kotlin/lib` is ultimately what the goal is to publish. A generic set of bindings for Godot.
-   - `/godot-kotlin/test-project` is the test bed and where examples can be found of usage. 
- - A git submodule to the GDNative headers repository under `/godot-kotlin/godot_headers`
+ - A godot project in the root for testing
+ - A gradle/kotlin multimodule project under `/godot-kotlin`
+   - `/godot-kotlin/lib` is ultimately what the goal is to publish. A set of bindings for Godot in Kotlin.
+   - `/godot-kotlin/test-project` is the test bed and where examples can be found of usage. This is what we want a user of this library to have their code look like. It should be as similar to GDScript and the Godot documentation as possible.
+ - A git submodule to the GDNative headers repository under `/godot-kotlin/godot_headers` <- where the C bindings are generated from. There is also some code generation that happens using kotlinpoet to help out with Nodes and Objects and things.
 
 It uses (at the time of writing):
- - Godot 3.2.master.stern-flowers.6e032365.730-2019-06-28T13:48:13+00:00
- - Kotlin 1.3.21
- - Gradle 5.4.1
+ - Godot 3.1
+ - Kotlin 1.3.41
+ - Gradle 5.5.1
 
 The godot project is setup to import the binaries built by gradle.
 See the [Kotlin project readme](/godot-kotlin/README.md) for details on how to build the binaries.
@@ -21,11 +21,18 @@ The `gdns` and `gdnlib` resource files (that are used to import the binary to go
 currently and should not be placed in the subdirectory or they will not be visible to godot.
 
 # Current Focus
-### 10-Aug-2019
- - Rewriting Core classes to be more usable
- - Look at macro-like functionality to replace companion class 
+### 17-Aug-2019
+ - Writing out the logic for core classes
+ - Need to look at compilation time. It's obscene (~7 minutes!!!) and not useful to anyone. Not sure what can be done as it's probably all konan related... maybe a fundamental flaw in the project as it makes the quick iteration of change and test that GDScript allows basically impossible. Time to get philosophical? What is the best use of Kotlin here?
  
 # Status Report
+
+### 17-Aug-2019
+ - Lots of little bug fixes
+ - I fixed all the memory leaks Godot reported! All other allocs are memscoped so I think we're good (risk: passing memscoped things elsewhere where they are remembered)
+ - Lib is much much easier to use. Arrays, Dictionaries, Strings etc all use the native Kotlin version (Array, MutableMap, String)
+ - Variants are much better done. Goal is a user mostly doesn't need to care about them (similar to GDScript)
+ - Signals working!
 
 ### 10-Aug-2019
  - Varargs generated in Godot classes 
