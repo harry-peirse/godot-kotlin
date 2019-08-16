@@ -1,5 +1,10 @@
 # godot-kotlin
-Still very experimental Godot bindings in Kotlin
+
+## What is this
+
+Still very experimental Godot bindings in Kotlin, so you can write kotlin native code and have it run in your Godot game
+
+## Yeah, but what is this
 
 This repository contains:
  - A godot project in the root for testing
@@ -20,12 +25,12 @@ Note that the godot-kotlin subdirectory contains a `.gdignore` file so that Godo
 The `gdns` and `gdnlib` resource files (that are used to import the binary to godot) are therefore sitting in the root directory
 currently and should not be placed in the subdirectory or they will not be visible to godot.
 
-# Current Focus
+## Current Focus
 ### 17-Aug-2019
  - Writing out the logic for core classes
  - Need to look at compilation time. It's obscene (~7 minutes!!!) and not useful to anyone. Not sure what can be done as it's probably all konan related... maybe a fundamental flaw in the project as it makes the quick iteration of change and test that GDScript allows basically impossible. Time to get philosophical? What is the best use of Kotlin here?
  
-# Status Report
+## Status Report
 
 ### 17-Aug-2019
  - Lots of little bug fixes
