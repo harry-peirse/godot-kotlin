@@ -1,14 +1,11 @@
 package godot
 
 import godot.internal.godot_node_path
-import godot.toKString
 import kotlinx.cinterop.*
-
-fun String.toNodePath(): NodePath = NodePath(this)
 
 class NodePath internal constructor(internal val raw: CPointer<godot_node_path>) {
 
-    internal constructor(value: CValue<godot_node_path>) : this (value.place(godotAlloc()))
+    internal constructor(value: CValue<godot_node_path>) : this(value.place(godotAlloc()))
 
     constructor(from: String = "") : this(godotAlloc()) {
         memScoped {
@@ -17,6 +14,10 @@ class NodePath internal constructor(internal val raw: CPointer<godot_node_path>)
     }
 
     constructor(other: NodePath) : this(other.toString())
+
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_node_path> {
+        return raw
+    }
 
     fun getName(index: Int): String = memScoped {
         godot.api.godot_node_path_get_name!!(raw, index).ptr.toKString()

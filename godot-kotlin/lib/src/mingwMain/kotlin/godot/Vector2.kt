@@ -4,9 +4,6 @@ import godot.internal.godot_vector2
 import kotlinx.cinterop.*
 import kotlin.math.*
 
-typealias Point2 = Vector2
-typealias Size2 = Vector2
-
 class Vector2(var x: Float = 0f, var y: Float = 0f) : Comparable<Vector2> {
 
     var width: Float

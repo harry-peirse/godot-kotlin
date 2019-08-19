@@ -19,7 +19,7 @@ fun registerSignal(className: String, signalName: String, vararg arguments: Pair
         signal.num_default_args = 0
 
         if (signal.num_args != 0) {
-            signal.args = godotAlloc(godot_signal_argument.size * signal.num_args)
+            signal.args = allocArray(signal.num_args)
             memset(signal.args, 0, (godot_signal_argument.size * signal.num_args).toULong())
         }
 

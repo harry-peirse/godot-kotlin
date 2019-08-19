@@ -17,6 +17,9 @@ typealias GDNativeInitOptions = godot_gdnative_init_options
 typealias GDNativeTerminateOptions = godot_gdnative_terminate_options
 typealias NativescriptHandle = COpaquePointer
 
+typealias Point2 = Vector2
+typealias Size2 = Vector2
+
 lateinit var api: godot_gdnative_core_api_struct
 lateinit var gdnlib: CPointer<godot_variant>
 lateinit var nativescriptApi: godot_gdnative_ext_nativescript_api_struct
@@ -71,6 +74,8 @@ internal fun Array<Variant>.toGArray(scope: AutofreeScope): CPointer<godot_array
     }
     return _array
 }
+
+fun String.toNodePath(): NodePath = NodePath(this)
 
 fun print(message: Any?) {
     memScoped {

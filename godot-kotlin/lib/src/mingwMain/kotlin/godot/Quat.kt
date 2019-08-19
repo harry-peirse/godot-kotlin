@@ -233,7 +233,7 @@ class Quat(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f, var w: Float
             w * v.z + x * v.y - y * v.x,
             -x * v.x - y * v.y - z * v.z)
 
-    fun xform(v: Vector3) = copy()
+    fun xform(v: Vector3) = (this * v)
             .apply { inverse() }
             .let { Vector3(x, y, z) }
 

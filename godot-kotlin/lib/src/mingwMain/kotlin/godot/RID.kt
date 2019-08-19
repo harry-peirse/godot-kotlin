@@ -15,6 +15,10 @@ class RID internal constructor(internal val raw: CPointer<godot_rid>) : Comparab
         }
     }
 
+    internal fun _raw(scope: AutofreeScope): CPointer<godot_rid> {
+        return raw
+    }
+
     fun getRID(): Int = api.godot_rid_get_id!!(raw)
 
     override fun equals(other: Any?) = other is RID && api.godot_rid_operator_equal!!(raw, other.raw)
